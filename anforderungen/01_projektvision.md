@@ -56,9 +56,9 @@ Das System stellt einen generischen Prozessrahmen bereit, der durch die Spartenk
 - **Kompetenz-System** – Verwaltung von Rollen und Berechtigungen (Kompetenzen); das Bestandsführungssystem fragt über eine Schnittstelle ab, ob ein Benutzer eine bestimmte Kompetenz (Kompetenz-ID) besitzt
 
 ## Zielgruppe
-<!-- Wer wird das System nutzen? -->
-- 
-- 
+- **Außendienst (Vertrieb):** Vertriebsmitarbeiter, die Kunden vor Ort beraten, Angebote erstellen und Verträge abschließen
+- **Innendienst (Sachbearbeitung):** Sachbearbeiter, die Verträge verwalten, Sonderfälle bearbeiten und die Qualitätssicherung übernehmen
+- **Kunden (via Kundenportal):** Versicherungsnehmer, die über das Kundenportal Verträge einsehen, abschließen und Änderungen beauftragen (indirekter Zugriff über Schnittstelle S7)
 
 ## Erfolgskriterien
 <!-- Woran messen wir, ob das Projekt erfolgreich ist? -->

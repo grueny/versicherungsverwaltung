@@ -11,6 +11,7 @@
 
 | UC-Nr. | Titel | Priorität | Status |
 |--------|-------|-----------|--------|
+| [UC-KFZ-00](UC-KFZ-00_fahrzeugart_auswaehlen.md) | Fahrzeugart auswählen und Angebot eröffnen | 🔴 Muss | ✅ Fertig |
 | UC-KFZ-01 | Fahrzeugdaten erfassen und Typklasse ermitteln | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-02 | eVB-Nummer erzeugen | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-03 | SF-Klasse übernehmen / nachweisen | 🔴 Muss | 🔲 Offen |

@@ -3,29 +3,90 @@
 ## Technologie-Stack
 
 ### Frontend
-- **Framework:** 
-- **Sprache:** 
-- **CSS/Styling:** 
-- **State Management:** 
+- **Framework:** Angular 19
+- **Sprache:** TypeScript
+- **CSS/Styling:** Angular Material (Material Design Komponenten)
+- **State Management:** Angular Signals (ngrx/signals)
+- **Forms:** Angular Reactive Forms (eingebaute Validierung → ideal für Plausibilitäten in Echtzeit)
+- **Build:** Angular CLI
+- **API-Client:** Automatisch generiert aus OpenAPI 3.1 Spec
 
 ### Backend
-- **Framework:** 
-- **Sprache:** 
-- **API-Stil:** 
+- **Framework:** Spring Boot 3 (Spring 6)
+- **Sprache:** Java 21 (LTS)
+- **API-Stil:** REST + OpenAPI 3.1 (API-First-Entwicklung)
+- **Regelengine:** Drools (KIE) – für spartenspezifische Plausibilitäten und Geschäftsregeln
+- **Hook-Mechanismus:** Spring Events (ApplicationEventPublisher) – für Extension Points / Hooks
+- **Modularisierung:** Spring Modulith – modularer Monolith, ein Modul pro Sparte
+- **Audit/Historisierung:** Hibernate Envers – revisionssichere Historisierung aller Entitäten
+- **Security:** Spring Security – Integration mit Kompetenz-System (S8)
 
 ### Datenbank
-- **Typ:** 
-- **System:** 
-- **ORM/Query Builder:** 
+- **Typ:** Relational (RDBMS)
+- **System:** PostgreSQL 17
+- **ORM/Query Builder:** Spring Data JPA (Hibernate 6)
+- **Historisierung:** Temporal Tables (SQL:2011, system-versioned) + Hibernate Envers
+- **Flexible Spartendaten:** JSONB-Spalten für spartenspezifische Attribute
+- **Skalierung:** Table Partitioning nach Sparte/Jahr für große Bestände
 
 ### Authentifizierung
-- **Methode:** 
-- **Provider:** 
+- **Methode:** Token-basiert (JWT / OAuth2)
+- **Provider:** Externes Kompetenz-System (S8) – Kompetenz-ID-Abfrage pro Aktion
+- **Integration:** Spring Security Filter → Kompetenz-System-Abfrage bei geschützten Endpunkten
 
 ## Architektur
-<!-- Monolith, Microservices, Serverless etc. -->
-- **Architekturstil:** 
-- **Begründung:** 
+
+- **Architekturstil:** Modularer Monolith (Spring Modulith)
+- **Begründung:** Für den Start kein Microservice-Overhead nötig. Spring Modulith erzwingt saubere Modulgrenzen (Kern + Sparten-Module) und erlaubt einen späteren Split in Microservices, falls nötig. Jede Sparte ist ein eigenständiges Modul mit definierten Interfaces zum Kern.
+
+### Gesamtarchitektur
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Frontend                          │
+│              Angular 19 + Material                   │
+│      Reactive Forms + Signals + Lazy Loading         │
+└──────────────────────┬──────────────────────────────┘
+                       │ REST / OpenAPI 3.1 (JSON)
+┌──────────────────────▼──────────────────────────────┐
+│           Backend (Spring Boot 3 / Java 21)          │
+│  ┌─────────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ Kernprozess  │  │  Drools  │  │ Spring Events │  │
+│  │  (Services)  │  │ (Regeln) │  │   (Hooks)     │  │
+│  └──────┬──────┘  └────┬─────┘  └──────┬────────┘  │
+│         │              │               │            │
+│  ┌──────▼──────────────▼───────────────▼────────┐  │
+│  │         Sparten-Registry (Spring Modulith)    │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐   │  │
+│  │  │ Modul:   │  │ Modul:   │  │ Modul:   │   │  │
+│  │  │   KFZ    │  │   Sach   │  │  Leben   │   │  │
+│  │  └──────────┘  └──────────┘  └──────────┘   │  │
+│  └──────────────────────┬───────────────────────┘  │
+│                         │                           │
+│  ┌──────────────────────▼───────────────────────┐  │
+│  │    Spring Data JPA (Hibernate 6 + Envers)     │  │
+│  └──────────────────────┬───────────────────────┘  │
+└─────────────────────────┼───────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────┐
+│              PostgreSQL 17                           │
+│   Temporal Tables │ JSONB │ Partitioning │ Envers    │
+└─────────────────────────────────────────────────────┘
+```
+
+### Technologie-Zuordnung zu Architekturkonzepten
+
+| Architekturkonzept | Technologie | Begründung |
+|--------------------|-------------|------------|
+| Sparten-Registry | Spring Modulith Module | Ein Modul pro Sparte, klare Grenzen, DI-basierte Registrierung |
+| Extension Points / Hooks | Spring ApplicationEvents | Entkoppelt, asynchron möglich, testbar mit @EventListener |
+| Regelengine (Plausibilitäten) | Drools (KIE) | DRL-Regeln fachlich lesbar, Hot-Deployment ohne Restart |
+| Produktkonfiguration (DB) | Spring Data JPA + JSONB | Fachbereich pflegt Tarife/Produkte ohne Deployment |
+| Revisionssichere Historisierung | Hibernate Envers + Temporal Tables | Lückenlose Änderungshistorie mit Benutzer + Zeitstempel |
+| Consumer-Driven Contracts | Spring Cloud Contract | Contract-Tests im Kern-Build, Stubs für Sparten-Tests |
+| Kompetenz-Integration | Spring Security + RestTemplate | Kompetenz-Abfrage per REST an externes System (S8) |
+| API-Dokumentation | springdoc-openapi (OpenAPI 3.1) | Automatische Spec-Generierung, Client-Codegen für Angular |
+| Formular-Validierung (Frontend) | Angular Reactive Forms | Synchrone + asynchrone Validatoren, 1:1 Mapping zu Plausibilitäten |
 
 ## Spartenkonfiguration – Architekturentscheidung
 
@@ -99,16 +160,20 @@ SpartenRegistry
 - **Neue Sparte hinzufügen** → Produkte in DB anlegen + Regeln registrieren + Hooks implementieren + in Registry eintragen
 
 ## Deployment & Infrastruktur
-- **Hosting:** 
-- **Container:** 
-- **CI/CD:** 
+- **Hosting:** Noch zu entscheiden (On-Premise / Cloud / Hybrid)
+- **Container:** Docker (Dockerfile für Backend + Frontend), Docker Compose für lokale Entwicklung
+- **CI/CD:** Noch zu entscheiden (Jenkins / GitLab CI / GitHub Actions)
+- **Build-Tools:** Maven (Backend), Angular CLI / npm (Frontend)
 - **Environments:** Development | Staging | Production
+- **Artifact:** Spring Boot Fat-JAR (Backend), nginx-served Static Files (Frontend)
 
 ## Entwicklungsstandards
 - **Versionierung:** Git
-- **Branching-Strategie:** 
-- **Code-Style:** 
+- **Branching-Strategie:** Git Flow (main, develop, feature/*, release/*, hotfix/*)
+- **Code-Style:** Google Java Style Guide + Checkstyle, Prettier + ESLint (Angular)
 - **Testing-Strategie:** → siehe Abschnitt „Teststrategie" weiter unten
+- **Code Reviews:** Pull/Merge Requests mit mindestens 1 Reviewer
+- **Dokumentation:** JavaDoc (öffentliche APIs), OpenAPI Spec (REST), ADRs (Architecture Decision Records)
 
 ## Teststrategie – Kern vs. Sparten
 
@@ -275,15 +340,18 @@ PolicierungKontext {
 | Adapter-Schicht | Bewusste Breaking Changes | Kern-Team liefert Adapter, Sparte übernimmt wenn bereit |
 
 ## Monitoring & Logging
-- **Logging:** 
-- **Monitoring:** 
-- **Error Tracking:** 
+- **Logging:** SLF4J + Logback (Spring Boot Default), strukturiertes JSON-Logging für Produktion
+- **Monitoring:** Spring Boot Actuator (Health, Metrics, Info) + Micrometer (Prometheus-kompatibel)
+- **Error Tracking:** Zentrale Exception-Handler (@ControllerAdvice), Correlation-IDs pro Request
+- **Tracing:** Micrometer Tracing (ehemals Spring Cloud Sleuth) – Request-Tracing über Module hinweg
 
 ## Sonstiges
-- **Zeitzone:** 
-- **Währung:** 
+- **Zeitzone:** Europe/Berlin (CET/CEST)
+- **Währung:** EUR (€), Beträge in Cent (long) oder BigDecimal mit 2 Nachkommastellen
 - **Zeichenkodierung:** UTF-8
-- **Datumsformat:** 
+- **Datumsformat:** dd.MM.yyyy (Anzeige), ISO 8601 / yyyy-MM-dd (API/DB)
+- **Locale:** de_DE
+- **Versionierung API:** URL-basiert (/api/v1/, /api/v2/)
 
 ## Offene Entscheidungen
 <!-- Technische Entscheidungen, die noch getroffen werden müssen -->
@@ -291,8 +359,9 @@ PolicierungKontext {
 - [x] Teststrategie: Testpyramide mit Consumer-Driven Contracts + generischem Sparten-Testkit → siehe oben
 - [x] Schutz vor Breaking Changes: 3-Schichten-Modell (Contracts + Parallelbetrieb + Adapter) → siehe oben
 - [x] Hook-Parameter: Erweiterbare Kontextobjekte statt einzelner Parameter → siehe oben
-- [ ] Konkrete Regelengine auswählen (z. B. Drools, Easy Rules, eigene Implementierung)
-- [ ] Hook-Mechanismus: Framework-spezifische Events vs. eigenes Observer-Pattern
+- [x] Technologie-Stack: Java 21 + Spring Boot 3 + Angular 19 + PostgreSQL 17 → siehe Technologie-Stack
+- [x] Regelengine: Drools (KIE) → fachlich lesbare DRL-Regeln, Hot-Deployment
+- [x] Hook-Mechanismus: Spring ApplicationEvents (ApplicationEventPublisher) → entkoppelt, asynchron möglich
+- [x] Contract-Test-Framework: Spring Cloud Contract → nahtlose Spring-Boot-Integration, Stub-Generierung
 - [ ] Administrations-UI für Produkt-/Tarifpflege durch Fachbereich
-- [ ] Contract-Test-Framework auswählen (z. B. Pact, Spring Cloud Contract, eigene Implementierung)
 - [ ] Grace Period für deprecated Interfaces festlegen (Anzahl Releases)

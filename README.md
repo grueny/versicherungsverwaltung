@@ -22,11 +22,11 @@ Die Anforderungen sind im Ordner [`anforderungen/`](anforderungen/) strukturiert
 | 04 | [Kontextabgrenzung](anforderungen/04_kontextabgrenzung.md) | Systemgrenzen, Schnittstellen, Kontextdiagramm | ✅ Erfasst |
 | 05 | [Funktionale Anforderungen](anforderungen/05_funktionale_anforderungen/) | Spartenübergreifende Use Cases und Epics | ✏️ Teilweise |
 | 06 | [Nichtfunktionale Anforderungen](anforderungen/06_nichtfunktionale_anforderungen.md) | Performance, Sicherheit, Verfügbarkeit etc. | 🔲 Offen |
-| 07 | [Datenmodell](anforderungen/07_datenmodell.md) | Entitäten, Relationen, Enumerationen | 🔲 Offen |
+| 07 | [Datenmodell](anforderungen/07_datenmodell.md) | Entitäten, Relationen, Enumerationen | ✅ Vollständig |
 | 08 | [Geschäftsregeln](anforderungen/08_geschaeftsregeln.md) | Spartenübergreifende Geschäftsregeln | 🔲 Offen |
 | 09 | [Schnittstellen](anforderungen/09_schnittstellen.md) | Technische Schnittstellenspezifikationen | 🔲 Offen |
 | 10 | [UI-Anforderungen](anforderungen/10_ui_anforderungen.md) | Navigation, Layouts, Interaktionsmuster | 🔲 Offen |
-| 11 | [Technische Rahmenbedingungen](anforderungen/11_technische_rahmenbedingungen.md) | Architektur, Stack, Spartenkonfiguration | ✏️ Teilweise |
+| 11 | [Technische Rahmenbedingungen](anforderungen/11_technische_rahmenbedingungen.md) | Architektur, Stack, Spartenkonfiguration | ✅ Vollständig |
 | 12 | [Sparten](anforderungen/12_sparten/) | Spartenspezifische Anforderungen | ✏️ Teilweise |
 
 ### Spartenstruktur
@@ -103,3 +103,8 @@ Das Bestandsführungssystem ist über Schnittstellen an folgende externe Systeme
 | Spartenkonfiguration | Hybrid: DB + Regelengine + Hooks + Registry |
 | Datenmigration | Import aus Alt-Systemen vorgesehen |
 | Regulatorik | DORA-konform |
+| **Technologie-Stack** | **Java 21 + Spring Boot 3 + Angular 19 + PostgreSQL 17** |
+| Regelengine | Drools (KIE) |
+| Hook-Mechanismus | Spring ApplicationEvents |
+| Architekturstil | Modularer Monolith (Spring Modulith) |
+| Contract-Tests | Spring Cloud Contract |

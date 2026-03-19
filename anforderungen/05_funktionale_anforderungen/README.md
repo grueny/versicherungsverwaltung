@@ -8,8 +8,8 @@
 
 | UC-Nr. | Titel | Priorität | Status |
 |--------|-------|-----------|--------|
-| UC-01 | | | 🔲 Offen |
-| UC-02 | | | 🔲 Offen |
+| [UC-01](UC-01_angebot_erstellen_und_beantragen.md) | Angebot erstellen und beantragen | 🔴 Muss | ✅ Fertig |
+| [UC-02](UC-02_antrag_bearbeiten_und_freigeben.md) | Antrag bearbeiten und freigeben | 🔴 Muss | ✅ Fertig |
 | UC-03 | | | 🔲 Offen |
 
 > **Priorität:** 🔴 Muss | 🟡 Soll | 🟢 Kann  
@@ -30,9 +30,8 @@
 - UC-XX: Kundenübersicht anzeigen
 
 ### Vertrieb / Anbahnung
-- UC-XX: Angebot erstellen
-- UC-XX: Antrag erfassen
-- UC-XX: Antrag prüfen
+- [UC-01: Angebot erstellen und beantragen](UC-01_angebot_erstellen_und_beantragen.md) ✅
+- [UC-02: Antrag bearbeiten und freigeben](UC-02_antrag_bearbeiten_und_freigeben.md) ✅
 
 ### Berichtswesen
 - UC-XX: Berichte generieren
