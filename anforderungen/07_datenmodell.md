@@ -770,6 +770,56 @@
 
 ---
 
+### 4.9 KfzBasisbeitrag (KFZ-Konfiguration)
+
+> Jährlicher Basisbeitrag je Produkt und Fahrzeugart. Ausgangswert für das Scoring-Faktor-Modell (→ kfz/geschaeftsregeln.md). Verwaltung über UC-03 (Produktkonfiguration und Kalkulation).
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|--------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| produkt_id | UUID (FK) | ✅ | Referenz auf Produkt (KFZ-HP, KFZ-TK, KFZ-VK) | |
+| fahrzeugart | Enum | ✅ | Fahrzeugart (→ 5.13) | `PKW` |
+| basisbeitrag | BigDecimal(10,2) | ✅ | Jahresbasisbeitrag in EUR | `280.00` |
+| gueltig_ab | Date | ✅ | Beginn der Gültigkeit | `2026-01-01` |
+| gueltig_bis | Date | ❌ | Ende der Gültigkeit (NULL = unbefristet) | |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `UNIQUE(produkt_id, fahrzeugart, gueltig_ab)` – pro Produkt und Fahrzeugart darf es zu einem Stichtag nur einen Basisbeitrag geben
+- `basisbeitrag > 0`
+- `gueltig_bis IS NULL OR gueltig_bis > gueltig_ab`
+
+**Historisierung:** ✅ Hibernate Envers
+
+---
+
+### 4.10 KfzScoringfaktor (KFZ-Konfiguration)
+
+> Multiplikative Scoringfaktoren für die KFZ-Prämienberechnung. Jede Zeile ordnet einem Tarifmerkmal-Wert einen Faktor zu. Verwaltung über UC-03 (Produktkonfiguration und Kalkulation).
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|--------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| faktor_typ | Enum | ✅ | Kategorie des Scoringfaktors (→ 5.17) | `SF_KLASSE` |
+| produkt_id | UUID (FK) | ❌ | Produktbezug (NULL = produktübergreifend) | |
+| faktor_schluessel | String(50) | ✅ | Schlüsselwert des Tarifmerkmals | `SF5` |
+| faktor_wert | BigDecimal(6,4) | ✅ | Multiplikator (1.0000 = neutral) | `0.5500` |
+| gueltig_ab | Date | ✅ | Beginn der Gültigkeit | `2026-01-01` |
+| gueltig_bis | Date | ❌ | Ende der Gültigkeit (NULL = unbefristet) | |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `UNIQUE(faktor_typ, produkt_id, faktor_schluessel, gueltig_ab)` – pro Typ, Produkt und Schlüssel max. ein Faktor pro Stichtag
+- `faktor_wert > 0` (kein negativer oder Null-Faktor)
+- `produkt_id` ist NULL bei produktübergreifenden Faktoren (Fahrerkreis, Fahrleistung, Alter, Stellplatz, Nutzungsart)
+- `produkt_id` ist gesetzt bei produktspezifischen Faktoren (SF_KLASSE, TYPKLASSE, REGIONALKLASSE, SELBSTBETEILIGUNG)
+
+**Historisierung:** ✅ Hibernate Envers
+
+---
+
 ## 5. Enumerationen / Wertelisten
 
 ### 5.1 Angebotsstatus
@@ -941,8 +991,25 @@
 | `Fahrerkreis` | ALLE, VN_PARTNER, NUR_VN | KfzTarifierung |
 | `Stellplatz` | GARAGE, CARPORT, STRASSE | KfzTarifierung |
 | `Nutzungsart` | PRIVAT, GESCHAEFTLICH, GEMISCHT | KfzTarifierung |
+| `ScoringfaktorTyp` | SF_KLASSE, TYPKLASSE, REGIONALKLASSE, FAHRERKREIS, FAHRLEISTUNG, ALTER_JUENGSTER_FAHRER, STELLPLATZ, NUTZUNGSART, SELBSTBETEILIGUNG | KfzScoringfaktor |
 | `Kraftstoffart` | BENZIN, DIESEL, ELEKTRO, HYBRID_BENZIN, HYBRID_DIESEL, GAS, WASSERSTOFF | Fahrzeug |
 | `SfAenderungsgrund` | JAEHRLICHE_HOCHSTUFUNG, RUECKSTUFUNG_SCHADEN, UEBERNAHME, KORREKTUR | SfKlassenHistorie |
+
+### 5.17 ScoringfaktorTyp (NEU)
+
+> Kategorisiert die Scoringfaktoren in `KfzScoringfaktor`. Bestimmt, welches Tarifmerkmal der Faktor abbildet und ob er produktspezifisch oder produktübergreifend ist.
+
+| Wert | Beschreibung | Produktbezug | Schlüssel-Beispiele |
+|------|-------------|:------------:|---------------------|
+| `SF_KLASSE` | Schadenfreiheitsklasse (HP / VK separat) | pro Produkt | `SF35`, `SF5`, `SF½`, `0`, `M` |
+| `TYPKLASSE` | GDV-Typklasseneinstufung (HP / TK / VK separat) | pro Produkt | `10`, `15`, `20`, `25`, `33` |
+| `REGIONALKLASSE` | GDV-Regionalklasse (HP / TK / VK separat) | pro Produkt | `1`, `6`, `12`, `16` |
+| `FAHRERKREIS` | Berechtigter Fahrerkreis | übergreifend | `NUR_VN`, `VN_PARTNER`, `ALLE` |
+| `FAHRLEISTUNG` | Jährliche Fahrleistung in km-Stufen | übergreifend | `BIS_6000`, `6001_9000`, `9001_12000`, … |
+| `ALTER_JUENGSTER_FAHRER` | Altersgruppe des jüngsten Fahrers | übergreifend | `17_20`, `21_22`, `23_24`, `25_29`, `30_49`, … |
+| `STELLPLATZ` | Üblicher Abstellort | übergreifend | `GARAGE`, `CARPORT`, `STRASSE` |
+| `NUTZUNGSART` | Art der Fahrzeugnutzung | übergreifend | `PRIVAT`, `GEMISCHT`, `GESCHAEFTLICH` |
+| `SELBSTBETEILIGUNG` | Selbstbeteiligung in EUR (TK / VK separat) | pro Produkt | `0`, `150`, `300`, `500`, `1000` |
 
 ---
 
@@ -969,6 +1036,8 @@
 | Produkt | Tarifmerkmal | 1:n | Tarifmerkmal.produkt_id | Merkmale pro Produkt |
 | Produkt | Produktabhaengigkeit | 1:n | Produktabhaengigkeit.produkt_id | Abhängigkeiten |
 | **KFZ:** Fahrzeug | KfzTarifierung | 1:1 | KfzTarifierung.fahrzeug_id | Tarifmerkmale pro Fahrzeug |
+| **KFZ:** Produkt | KfzBasisbeitrag | 1:n | KfzBasisbeitrag.produkt_id | Basisbeiträge pro Produkt und Fahrzeugart |
+| **KFZ:** Produkt | KfzScoringfaktor | 1:n | KfzScoringfaktor.produkt_id | Produktspezifische Scoringfaktoren (NULL = übergreifend) |
 | **KFZ:** Vertrag | SfKlassenHistorie | 1:n | SfKlassenHistorie.vertrag_id | SF-Verlauf |
 | **KFZ:** Antrag/Vertrag | EvbNummer | 1:0..n | EvbNummer.antrag_id / vertrag_id | eVB-Nummern |
 | **KFZ:** Partner | EvbNummer | 1:n | EvbNummer.partner_id | eVBs eines Partners (auch ohne Antrag) |
@@ -1025,32 +1094,53 @@
 
 ### 7.4 JSONB-Schema Berechnungsdetails (Angebot/Antrag → DM-06)
 
-> Zwischenergebnisse der Prämienberechnung zur Nachvollziehbarkeit bei Rückfragen.
+> Zwischenergebnisse der Prämienberechnung zur Nachvollziehbarkeit bei Rückfragen. Bildet das Scoring-Faktor-Modell (→ kfz/geschaeftsregeln.md) vollständig ab.
 
 ```json
 {
   "berechnungsdatum": "2026-03-19T14:22:00",
   "tarifversion": "KFZ-2026-Q1",
-  "grundbeitrag": 380.00,
-  "sf_rabatt_prozent": -25.0,
-  "sf_rabatt_betrag": -95.00,
-  "typklassen_zuschlag": 42.50,
-  "regionalklassen_zuschlag": 18.30,
-  "fahrerkreis_zuschlag": 0.00,
-  "fahrleistung_zuschlag": 12.00,
-  "stellplatz_rabatt": -8.50,
-  "zahlungsweise_aufschlag_prozent": 0.0,
-  "zahlungsweise_aufschlag_betrag": 0.00,
-  "zwischensumme_netto": 349.30,
+  "produkte": [
+    {
+      "produkt_id": "KFZ-HP",
+      "basisbeitrag": 280.00,
+      "fahrzeugart": "PKW",
+      "faktoren": [
+        { "typ": "SF_KLASSE", "schluessel": "SF5", "faktor": 0.5500 },
+        { "typ": "TYPKLASSE", "schluessel": "15", "faktor": 1.0000 },
+        { "typ": "REGIONALKLASSE", "schluessel": "6", "faktor": 1.0000 },
+        { "typ": "FAHRERKREIS", "schluessel": "ALLE", "faktor": 1.1000 },
+        { "typ": "FAHRLEISTUNG", "schluessel": "12001_15000", "faktor": 1.0000 },
+        { "typ": "ALTER_JUENGSTER_FAHRER", "schluessel": "30_49", "faktor": 1.0000 },
+        { "typ": "STELLPLATZ", "schluessel": "GARAGE", "faktor": 0.9000 },
+        { "typ": "NUTZUNGSART", "schluessel": "PRIVAT", "faktor": 1.0000 }
+      ],
+      "jahresbeitrag_netto": 152.46
+    },
+    {
+      "produkt_id": "KFZ-TK",
+      "basisbeitrag": 100.00,
+      "fahrzeugart": "PKW",
+      "faktoren": [
+        { "typ": "TYPKLASSE", "schluessel": "20", "faktor": 1.4500 },
+        { "typ": "REGIONALKLASSE", "schluessel": "6", "faktor": 1.0000 },
+        { "typ": "FAHRERKREIS", "schluessel": "ALLE", "faktor": 1.1000 },
+        { "typ": "FAHRLEISTUNG", "schluessel": "12001_15000", "faktor": 1.0000 },
+        { "typ": "ALTER_JUENGSTER_FAHRER", "schluessel": "30_49", "faktor": 1.0000 },
+        { "typ": "STELLPLATZ", "schluessel": "GARAGE", "faktor": 0.9000 },
+        { "typ": "NUTZUNGSART", "schluessel": "PRIVAT", "faktor": 1.0000 },
+        { "typ": "SELBSTBETEILIGUNG", "schluessel": "150", "faktor": 1.0000 }
+      ],
+      "jahresbeitrag_netto": 143.55
+    }
+  ],
+  "gesamtjahresbeitrag_netto": 296.01,
   "versicherungssteuer_prozent": 19.0,
-  "versicherungssteuer_betrag": 66.37,
-  "endbeitrag_brutto": 415.67,
-  "einzelposten": [
-    { "bezeichnung": "Grundbeitrag HP", "betrag": 280.00 },
-    { "bezeichnung": "Grundbeitrag TK", "betrag": 100.00 },
-    { "bezeichnung": "SF-Rabatt SF5 HP", "betrag": -70.00 },
-    { "bezeichnung": "SF-Rabatt SF5 TK", "betrag": -25.00 }
-  ]
+  "versicherungssteuer_betrag": 56.24,
+  "gesamtjahresbeitrag_brutto": 352.25,
+  "zahlungsweise": "JAEHRLICH",
+  "zahlungsweise_faktor": 1.0000,
+  "zahlbeitrag": 352.25
 }
 ```
 
@@ -1099,6 +1189,8 @@ kfz_tarifierung → kfz_tarifierung_aud (KFZ)
 vwb_nachricht → vwb_nachricht_aud  (KFZ)
 vkz_kennzeichen → vkz_kennzeichen_aud (KFZ)
 antragsanmahnung → antragsanmahnung_aud (KFZ)
+kfz_basisbeitrag → kfz_basisbeitrag_aud (KFZ-Konfiguration)
+kfz_scoringfaktor → kfz_scoringfaktor_aud (KFZ-Konfiguration)
 ```
 
 Jeder Audit-Eintrag enthält:
@@ -1166,6 +1258,9 @@ CREATE TRIGGER versioning_trigger
 | antragsanmahnung | idx_anm_frist | frist_anmahnung | B-Tree | Fristüberwachung |
 | antragsanmahnung | idx_anm_evb | evb_id | UNIQUE B-Tree | Anmahnung zur eVB |
 | antragsanmahnung | idx_anm_partner | partner_id | B-Tree | Anmahnungen eines Partners |
+| kfz_basisbeitrag | idx_bb_produkt_fza | produkt_id, fahrzeugart, gueltig_ab | UNIQUE B-Tree | Basisbeitrag-Lookup |
+| kfz_scoringfaktor | idx_sf_typ_prod_key | faktor_typ, produkt_id, faktor_schluessel, gueltig_ab | UNIQUE B-Tree | Faktor-Lookup |
+| kfz_scoringfaktor | idx_sf_typ_prod | faktor_typ, produkt_id | B-Tree | Alle Faktoren eines Typs/Produkts |
 | angebot | idx_angebot_spezifisch | spartenspezifische_daten | GIN | JSONB-Abfragen |
 
 ### 9.2 Partitionierung
@@ -1256,6 +1351,7 @@ CREATE TRIGGER versioning_trigger
 | ~~DM-01~~ | ✅ **Entschieden:** Kontakt- und Versandwege je Dokumententyp werden **nicht** im Kerndatenmodell abgebildet. Diese Daten werden in einer separaten Schnittstelle des Partner-Systems (S7) gespeichert und verwaltet. Die Versicherungsverwaltung konsumiert diese bei Bedarf per API-Aufruf. | Partner / S7 |
 | DM-02 | Werden Zweitversicherungsnehmer oder weitere beteiligte Personen am Vertrag benötigt? | Partner / Vertrag |
 | DM-03 | Soll ein Dokumentenarchiv (Referenzen auf gescannte Unterlagen, Wertgutachten, SF-Nachweise) im Modell abgebildet werden? | Allgemein |
+| ~~DM-09~~ | ✅ **Entschieden:** KFZ-Prämienberechnung erfolgt über ein **multiplikatives Scoring-Faktor-Modell** (Basisbeitrag × Faktor₁ × … × Faktorₙ). Basisbeiträge und Scoringfaktoren werden als dedizierte Tabellen (`KfzBasisbeitrag`, `KfzScoringfaktor`) in der DB gespeichert und über UC-03 versioniert verwaltet. Die Formel und alle Faktor-Tabellen sind in `12_sparten/kfz/geschaeftsregeln.md` dokumentiert. | KFZ / Prämie |
 | ~~DM-04~~ | ✅ **Entschieden:** Die Historisierung der Partnerdaten (inkl. Adressdaten) wird vollständig im **Partner-System (S7)** verwaltet. Die Versicherungsverwaltung hält nur den jeweils aktuellen Stand des Partners vor und zieht diesen bei Bedarf per API-Aufruf. Eine eigene Adress-Entität oder Adresshistorie im Kerndatenmodell ist **nicht** erforderlich. Die lokale Partner-Entität wird bei fachlichem Bedarf (z. B. Angebotserstellung, Policierung) synchronisiert. Hibernate Envers protokolliert weiterhin Änderungen am lokalen Datenbestand für die Revisionssicherheit innerhalb der Versicherungsverwaltung. | Partner / S7 |
 | DM-05 | Gibt es ein Konzept für Vermittler/Makler-Zuordnung am Vertrag? | Vertrag (→ 03_stakeholder) |
 | ~~DM-06~~ | ✅ **Entschieden:** Prämienberechnungs-Zwischenergebnisse werden in Angeboten und Anträgen **mitgespeichert**, um bei Missverständnissen oder Unklarheiten nachvollziehbar darauf zurückgreifen zu können. Die Persistierung erfolgt als JSONB-Feld `berechnungsdetails` in `AngebotProdukt` und `AntragProdukt` (→ Abschnitt 3). Inhalt: Einzelposten der Prämienberechnung (Grundbeitrag, Zu-/Abschläge, SF-Rabatt, Zahlungsweiseaufschlag, etc.). Im `VertragsstandProdukt` wird nur der finale policierte Beitrag gespeichert. | Angebot / Antrag |

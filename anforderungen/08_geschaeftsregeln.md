@@ -31,8 +31,8 @@
 
 | GR-Nr. | Regel | Auswirkung | Validierung | Quelle |
 |--------|-------|-----------|-------------|--------|
-| GR-P01 | | | | |
-| GR-P02 | | | | |
+| GR-P01 | Die Prämienberechnung einer Sparte erfolgt über ein konfigurierbares Scoring-Faktor-Modell: Basisbeitrag × Faktor₁ × … × Faktorₙ = Nettobeitrag. Basisbeiträge und Faktoren sind über UC-03 versioniert pflegbar | Änderungen an Tarifen erfordern kein Deployment; Simulation und 4-Augen-Freigabe über UC-03 | Alle benötigten Faktoren müssen für die gewählte Produktkombination vorhanden sein; fehlende Faktoren führen zu Berechnungsfehler | UC-03, kfz/geschaeftsregeln.md |
+| GR-P02 | Versicherungssteuer (19 %) wird auf den Gesamtjahresbeitrag netto (Summe aller Produkte) aufgeschlagen. Der Zahlungsweise-Aufschlag wird auf den Bruttobeitrag angewendet | Steuerbetrag und Zahlungsbeitrag werden als Einzelposten in den Berechnungsdetails ausgewiesen | Versicherungssteuersatz und Zahlungsweise-Faktoren müssen konfiguriert sein | UC-01, UC-03 |
 
 ## Übergreifende Regeln
 

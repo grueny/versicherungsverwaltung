@@ -567,6 +567,10 @@ Alle Fehler folgen dem RFC 7807 Problem-Details-Format:
 | `PUT` | `/api/v1/kfz/antragsanmahnungen/{id}/aktionen/stornieren` | Anmahnung stornieren (mit Begründung) | `ANTRAG_BEARBEITEN` |
 | `GET` | `/api/v1/kfz/vertraege/{vertrag_id}/sf-historie` | SF-Klassen-Verlauf eines Vertrags | `VERTRAG_LESEN` |
 | `GET` | `/api/v1/kfz/fahrzeugarten` | Verfügbare Fahrzeugarten mit Produktmatrix | `KONFIGURATION_LESEN` |
+| | | **Prämienberechnung / Scoring (Sub-Modul: kern)** | |
+| `GET` | `/api/v1/kfz/basisbeitraege` | Aktive Basisbeiträge (Filter: produkt_id, fahrzeugart) | `KONFIGURATION_LESEN` |
+| `GET` | `/api/v1/kfz/scoringfaktoren` | Aktive Scoringfaktoren (Filter: faktor_typ, produkt_id) | `KONFIGURATION_LESEN` |
+| `POST` | `/api/v1/kfz/praemienberechnung` | Ad-hoc-Prämienberechnung (ohne Angebot/Antrag) zur Tarifauskunft | `ANGEBOT_LESEN` |
 | | | **VWB-Verfahren (Sub-Modul: sfr)** | |
 | `GET` | `/api/v1/kfz/vwb-nachrichten` | VWB-Vorgänge suchen (Filter: status, richtung, partner) | `VERTRAG_LESEN` |
 | `GET` | `/api/v1/kfz/vwb-nachrichten/{id}` | VWB-Vorgang-Details | `VERTRAG_LESEN` |

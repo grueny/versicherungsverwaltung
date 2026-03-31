@@ -10,7 +10,8 @@
 |--------|-------|-----------|--------|
 | [UC-01](UC-01_angebot_erstellen_und_beantragen.md) | Angebot erstellen und beantragen | 🔴 Muss | ✅ Fertig |
 | [UC-02](UC-02_antrag_bearbeiten_und_freigeben.md) | Antrag bearbeiten und freigeben | 🔴 Muss | ✅ Fertig |
-| UC-03 | | | 🔲 Offen |
+| [UC-03](UC-03_produktkonfiguration_und_kalkulation.md) | Produktkonfiguration und Kalkulation einstellen | 🔴 Muss | ✅ Fertig |
+| [UC-04](UC-04_durchlaufzeiten_erfassen_und_auswerten.md) | Durchlaufzeiten erfassen und auswerten | 🟡 Soll | ✅ Fertig |
 
 > **Priorität:** 🔴 Muss | 🟡 Soll | 🟢 Kann  
 > **Status:** 🔲 Offen | ✏️ In Arbeit | ✅ Fertig | 🔍 In Review
@@ -33,7 +34,11 @@
 - [UC-01: Angebot erstellen und beantragen](UC-01_angebot_erstellen_und_beantragen.md) ✅
 - [UC-02: Antrag bearbeiten und freigeben](UC-02_antrag_bearbeiten_und_freigeben.md) ✅
 
+### Systemadministration / Konfiguration
+- [UC-03: Produktkonfiguration und Kalkulation einstellen](UC-03_produktkonfiguration_und_kalkulation.md) ✅
+
 ### Berichtswesen
+- [UC-04: Durchlaufzeiten erfassen und auswerten](UC-04_durchlaufzeiten_erfassen_und_auswerten.md) ✅
 - UC-XX: Berichte generieren
 - UC-XX: Statistiken anzeigen
 

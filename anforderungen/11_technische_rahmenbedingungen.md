@@ -157,9 +157,10 @@ SpartenRegistry
 
 ```
 kfz/
-├── kern/           ← Fahrzeug, Tarifierung, KFZ-spezifische Hooks
+├── kern/           ← Fahrzeug, Tarifierung, Prämienberechnung, KFZ-spezifische Hooks
 │   ├── FahrzeugService
 │   ├── KfzTarifierungService
+│   ├── KfzPraemienService          (Scoring-Faktor-Berechnung: Basisbeitrag × Faktoren)
 │   ├── KfzHookHandler          (vor_Angebotserstellung, vor_Policierung etc.)
 │   └── KfzProduktValidator
 │
