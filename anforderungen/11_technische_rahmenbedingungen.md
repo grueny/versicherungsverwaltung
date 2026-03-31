@@ -163,11 +163,13 @@ kfz/
 │   ├── KfzHookHandler          (vor_Angebotserstellung, vor_Policierung etc.)
 │   └── KfzProduktValidator
 │
-├── evb/            ← eVB-Erzeugung, GDV-Meldung, Stornierung, Ablauf
+├── evb/            ← eVB-Erzeugung, GDV-Meldung, Stornierung, Antragsanmahnung
 │   ├── EvbService              (Erzeugung, Ablauf, Stornierung)
-│   ├── EvbGdvClient            (GDV REST API: Meldung/Storno)
-│   ├── EvbAblaufScheduler      (6-Monats-Timer, NOT-04)
-│   └── EvbHookHandler          (nach_Antragserstellung → eVB erzeugen)
+│   ├── EvbOhneAntragService    (eVB ohne Antrag: Minimalerfassung, Schnellzulassung)
+│   ├── AntragsanmahnungService (Zulassungsrückmeldung → Anmahnung, Fristüberwachung)
+│   ├── EvbGdvClient            (GDV REST API: Meldung/Storno/Zulassungsrückmeldung)
+│   ├── EvbAblaufScheduler      (6-Monats-Timer, NOT-04; Anmahnungsfristen NOT-10/11)
+│   └── EvbHookHandler          (nach_Antragserstellung → eVB erzeugen / vorhandene eVB zuordnen)
 │
 ├── sfr/            ← SF-Klassen, VWB-Verfahren, Rückstufung, Hochstufung
 │   ├── SfKlassenService        (Berechnung, Hoch-/Rückstufung)
@@ -189,7 +191,7 @@ kfz/
 |-----------|------|-----|-----|-----|
 | **Eigener Lebenszyklus** | Fahrzeugdaten ändern sich selten | eVB: ERZEUGT→GEMELDET→VERWENDET→STORNIERT | SF: jährliche Hochstufung, Rückstufung bei Schaden; VWB: eigener Nachrichtenaustausch | VKZ: Saison 01.03.–28.02., jährliche Erneuerung |
 | **Eigene GDV-Schnittstelle** | Typklassen/Regionalklassen | eVB-Meldung/Storno | VWB-Nachrichten (SF-Anfrage/Auskunft) | – (interne Verwaltung) |
-| **Fachliche Komplexität** | Mittel | Mittel (Fristen, GDV-Meldung) | Hoch (Tabellen, Rabattschutz, VWB-Prozess) | Mittel (Kontingente, Saisonlogik) |
+| **Fachliche Komplexität** | Mittel | Hoch (Fristen, GDV-Meldung, eVB ohne Antrag, Antragsanmahnung) | Hoch (Tabellen, Rabattschutz, VWB-Prozess) | Mittel (Kontingente, Saisonlogik) |
 | **Getrennt testbar** | ✅ | ✅ | ✅ | ✅ |
 
 #### Spring-Modulith-Packages

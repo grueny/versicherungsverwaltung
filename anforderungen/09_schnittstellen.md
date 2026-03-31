@@ -556,8 +556,15 @@ Alle Fehler folgen dem RFC 7807 Problem-Details-Format:
 | `PUT` | `/api/v1/kfz/fahrzeuge/{id}/tarifierung` | Tarifierungsdaten aktualisieren | `ANGEBOT_BEARBEITEN` |
 | `GET` | `/api/v1/kfz/typklassen` | Typklassen-Lookup (Query: hsn, tsn) | `KONFIGURATION_LESEN` |
 | `GET` | `/api/v1/kfz/regionalklassen` | Regionalklassen-Lookup (Query: plz) | `KONFIGURATION_LESEN` |
-| `GET` | `/api/v1/kfz/evb-nummern` | eVB-Nummern suchen (Filter: status, antrag_id, vertrag_id) | `ANTRAG_LESEN` |
+| `GET` | `/api/v1/kfz/evb-nummern` | eVB-Nummern suchen (Filter: status, antrag_id, vertrag_id, partner_id) | `ANTRAG_LESEN` |
 | `GET` | `/api/v1/kfz/evb-nummern/{id}` | eVB-Details | `ANTRAG_LESEN` |
+| `POST` | `/api/v1/kfz/evb-nummern` | eVB ohne Antrag erstellen (Minimalerfassung) | `EVB_ERSTELLEN` |
+| | | **Antragsanmahnungen (Sub-Modul: evb)** | |
+| `GET` | `/api/v1/kfz/antragsanmahnungen` | Anmahnungen suchen (Filter: status, partner_id, frist) | `ANTRAG_LESEN` |
+| `GET` | `/api/v1/kfz/antragsanmahnungen/{id}` | Anmahnungs-Details | `ANTRAG_LESEN` |
+| `POST` | `/api/v1/kfz/antragsanmahnungen/{id}/aktionen/angebot-erstellen` | Angebot aus Anmahnung erzeugen (→ UC-01) | `ANGEBOT_ERSTELLEN` |
+| `PUT` | `/api/v1/kfz/antragsanmahnungen/{id}/aktionen/zuordnen` | Anmahnung bestehendem Angebot/Antrag zuordnen | `ANTRAG_BEARBEITEN` |
+| `PUT` | `/api/v1/kfz/antragsanmahnungen/{id}/aktionen/stornieren` | Anmahnung stornieren (mit Begründung) | `ANTRAG_BEARBEITEN` |
 | `GET` | `/api/v1/kfz/vertraege/{vertrag_id}/sf-historie` | SF-Klassen-Verlauf eines Vertrags | `VERTRAG_LESEN` |
 | `GET` | `/api/v1/kfz/fahrzeugarten` | Verfügbare Fahrzeugarten mit Produktmatrix | `KONFIGURATION_LESEN` |
 | | | **VWB-Verfahren (Sub-Modul: sfr)** | |
@@ -1176,6 +1183,7 @@ Alle Fehler folgen dem RFC 7807 Problem-Details-Format:
 | IMP-04 | Partner-System (S7) | JSON | REST (Push) | Ereignisbasiert | Partnerdaten-Synchronisation (→ 3.6) |
 | IMP-05 | GDV-Zulassungsstelle | JSON | REST (GDV-API → 3.9) | Polling (stündlich) | Fahrzeug-Abmeldungen (→ KFZ-Ruheversicherung) |
 | IMP-06 | GDV-VWB (SF-Auskünfte) | JSON | REST Webhook (GDV-API → 3.9) | Ereignisbasiert | SF-Auskünfte von Vorversicherern (→ VWB-Verfahren) |
+| IMP-08 | GDV-Zulassungsrückmeldung | JSON | REST Webhook (GDV-API → 3.9) | Ereignisbasiert | Bestätigung der eVB-Verwendung bei Zulassung (→ Antragsanmahnung) |
 | IMP-07 | Alt-System (Migration) | CSV / JSON | Batch-Import | Einmalig (Go-Live) | Bestandsdaten-Migration aus Vorsystemen |
 
 ## 5. Externe Schnittstellen – Exporte
@@ -1214,6 +1222,12 @@ Alle Fehler folgen dem RFC 7807 Problem-Details-Format:
 | `VkzZugewiesenEvent` | Policierung VKZ-Vertrag | S5 (Druck/Versand), Logging | Kennzeichen einem Vertrag zugewiesen |
 | `VkzZurueckgenommenEvent` | Kündigung/Ablauf | Bestandsführung, Logging | Kennzeichen zurückgenommen |
 | `VkzSaisonwechselEvent` | Scheduler (01.03.) | VKZ-Zuweisungen, S5 (Druck), S2 (Inkasso) | Jährlicher Kennzeichen-Saisonwechsel |
+| `EvbOhneAntragErstelltEvent` | POST /kfz/evb-nummern (ohne Antrag) | Logging, Analytics | eVB ohne Antrag erzeugt |
+| `ZulassungsrueckmeldungEmpfangenEvent` | GDV-Webhook (IMP-08) | eVB-StatusUpdate, Antragsanmahnung | Zulassungsstelle hat eVB verwendet |
+| `AntragsanmahnungErstelltEvent` | eVB ohne Antrag + Zulassung | NOT-10, Aufgabenübersicht | Antragsanmahnung erzeugt |
+| `AntragsanmahnungUeberfaelligEvent` | Scheduler (14-Tage-Frist) | NOT-10 (Erinnerung) | Anmahnungsfrist abgelaufen |
+| `AntragsanmahnungEskaliertEvent` | Scheduler (28-Tage-Frist) | NOT-11 (Eskalation) | Eskalationsfrist abgelaufen |
+| `AntragsanmahnungErledigtEvent` | Angebot/Antrag zugeordnet | Logging, Archivierung | Antragsanmahnung abgeschlossen |
 
 ---
 
@@ -1230,6 +1244,8 @@ Alle Fehler folgen dem RFC 7807 Problem-Details-Format:
 | NOT-07 | VWB-Abweichung (KFZ) | SF-Klasse aus Auskunft weicht ab | Sachbearbeiter | UI-Notification | Manuelle Prüfung der SF-Klasse erforderlich |
 | NOT-08 | VKZ-Kontingent niedrig | Bestand < 10% der Saison-Kontingente | System-Admin | UI-Notification | Nachbestellung Versicherungskennzeichen nötig |
 | NOT-09 | VKZ-Saisonwechsel (KFZ) | 4 Wochen vor 01.03. | Sachbearbeiter | UI-Notification | Saisonwechsel steht bevor, neue Kennzeichen vorbereiten |
+| NOT-10 | Antragsanmahnung (KFZ) | eVB ohne Antrag bei Zulassung verwendet | Sachbearbeiter / Vertriebsteam | UI-Notification | Antrag muss nachgeholt werden – Versicherer ist in Leistungspflicht |
+| NOT-11 | Antragsanmahnung-Eskalation (KFZ) | 28-Tage-Frist abgelaufen | Teamleiter | UI-Notification | Antragsanmahnung nicht bearbeitet, Eskalation erforderlich |
 
 > **Hinweis:** Externe Benachrichtigungen an Kunden (E-Mail, Brief) laufen über die Druckschnittstelle (S5) und das Partner-System (S7, Versandwege). Das Bestandsführungssystem erzeugt keine direkten E-Mails/SMS.
 

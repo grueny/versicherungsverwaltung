@@ -17,6 +17,8 @@
 | Kündigung / Storno | VKZ-Rücknahme | vkz | Kennzeichen zurücknehmen (nur FA-04) |
 | Verlängerung | Stichtagskündigung 30.11. | kern | Sonderkündigungsrecht beachten |
 | Verlängerung | VKZ-Saisonwechsel | vkz | Neues Kennzeichen zum 01.03. zuweisen |
+| – (Eigenständig) | eVB ohne Antrag erstellen | evb | Schnell-eVB ohne Angebot/Antrag |
+| – (Eigenständig) | Antragsanmahnung verarbeiten | evb | Zulassungsrückmeldung → Antragserinnerung |
 | – (Eigenständig) | VWB Zugang | sfr | SF-Anfrage an Vorversicherer bei Neukunde |
 | – (Eigenständig) | VWB Abgang | sfr | SF-Auskunft an Nachversicherer bei Abgang |
 | – (Eigenständig) | VKZ-Bestandsverwaltung | vkz | Kontingente bestellen, lagern, inventarisieren |
@@ -115,6 +117,59 @@ Bei Abmeldung des Fahrzeugs bei der Zulassungsstelle tritt eine Ruheversicherung
 - SF-Klasse bleibt während der Ruheversicherung erhalten
 
 ## Spartenspezifische Prozesse (ohne Kernprozess-Entsprechung)
+
+### eVB ohne Antrag erstellen (Sub-Modul: evb)
+
+- **Beschreibung:** Eine eVB-Nummer kann auch ohne vorheriges Angebot oder einen Antrag ausgestellt werden – z. B. wenn ein Kunde kurzfristig eine Versicherungsbestätigung für die Zulassungsstelle benötigt.
+- **Auslöser:** Benutzer wählt „eVB ohne Antrag erstellen“; telefonische Kundenanforderung
+- **Ablauf:**
+  1. Minimalerfassung: Partner + Fahrzeugart + Deckungsumfang (HP/HP+TK/HP+VK)
+  2. Optional: HSN/TSN, FIN, Wunschkennzeichen
+  3. Plausibilitätsprüfung (Partner aktiv, keine doppelte offene eVB)
+  4. eVB-Nummer erzeugen (Status: `ERZEUGT`)
+  5. eVB an GDV melden (Status: `GEMELDET`)
+  6. eVB dem Kunden bereitstellen (Anzeige, Druck via S5)
+- **Besonderheit:** Die eVB hat keinen `antrag_id` / `vertrag_id` – sie ist „frei schwebend“ bis ein Antrag zugeordnet wird
+- **Ergebnis:** eVB-Nummer erzeugt und gemeldet, Antrag steht noch aus
+- **Detaillierter Use Case:** → UC-KFZ-01
+
+### Antragsanmahnung bei Zulassungsrückmeldung (Sub-Modul: evb)
+
+- **Beschreibung:** Wenn die Zulassungsstelle eine eVB-Nummer verwendet und das GDV-System eine Rückmeldung sendet, prüft das System ob ein Antrag/Vertrag existiert. Falls nicht, wird automatisch eine Antragsanmahnung erzeugt.
+- **Auslöser:** GDV-Zulassungsrückmeldung (Import IMP-08) für eine eVB ohne zugeordneten Antrag/Vertrag
+- **Ablauf:**
+  1. GDV-Rückmeldung empfangen (eVB-Nummer, Zulassungsdaten, Kennzeichen, FIN)
+  2. eVB identifizieren und prüfen:
+     - eVB mit Antrag/Vertrag → nur Status-Update auf `VERWENDET`, keine Anmahnung
+     - eVB ohne Antrag/Vertrag → weiter mit Schritt 3
+  3. **Antragsanmahnung** erzeugen (Status: `OFFEN`)
+  4. Daten aus eVB (Partner, Fahrzeugart, Deckungsumfang) und GDV-Rückmeldung (Kennzeichen, FIN, Halter, Erstzulassung) zusammenführen
+  5. Frist setzen: 14 Tage (Anmahnungsfrist), 28 Tage (Eskalationsfrist)
+  6. Benachrichtigung (NOT-10) an Sachbearbeiter / Vertriebsteam
+- **Fristablauf:**
+  - 14 Tage → Status `UEBERFAELLIG`, Erinnerung
+  - 28 Tage → Status `ESKALIERT`, Eskalation an Teamleiter (NOT-11)
+- **Ergebnis:** Antragsanmahnung mit vollständigen Daten in der Aufgabenübersicht
+- **Detaillierter Use Case:** → UC-KFZ-01
+
+### Angebot aus Antragsanmahnung erstellen (Sub-Modul: evb)
+
+- **Beschreibung:** Der Sachbearbeiter erstellt aus einer Antragsanmahnung heraus ein Angebot. Alle verfügbaren Daten (Partner, Fahrzeug, eVB, Zulassungsdaten) werden automatisch übernommen.
+- **Auslöser:** Sachbearbeiter wählt „Angebot aus Anmahnung erstellen“ in der Aufgabenübersicht
+- **Ablauf:**
+  1. Daten aus Antragsanmahnung laden
+  2. Neues Angebot erzeugen (→ UC-01) mit vorausgefüllten Daten:
+     - Partner, Sparte KFZ, Fahrzeugart
+     - Fahrzeugdaten (HSN/TSN, FIN, Kennzeichen) aus Zulassungsrückmeldung
+     - Deckungsumfang aus eVB
+  3. Benutzer ergänzt fehlende Daten (SF-Klasse, Fahrerdaten, Nutzungsart etc.)
+  4. Normaler Angebotsprozess (UC-01, Phase 2–5)
+  5. Bei Beantragung: bestehende eVB wird dem Antrag zugeordnet (**keine neue eVB**)
+  6. Antragsanmahnung-Status → `ERLEDIGT`
+- **Ergebnis:** Antrag mit übernommenen Daten und verknüpfter eVB
+- **Detaillierter Use Case:** → UC-KFZ-01
+
+---
 
 ### eVB-Stornierung
 - **Beschreibung:** Stornierung einer eVB-Nummer, wenn das Fahrzeug nicht zugelassen wird

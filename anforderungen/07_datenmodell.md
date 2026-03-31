@@ -606,15 +606,21 @@
 | evb_nummer | String(7) | ✅ | 7-stelliger alphanumerischer Code | `A1B2C3D` |
 | antrag_id | UUID (FK) | ❌ | Referenz auf den Antrag | |
 | vertrag_id | UUID (FK) | ❌ | Referenz auf den Vertrag | |
+| partner_id | UUID (FK) | ✅ | Versicherungsnehmer (immer gesetzt) | |
+| fahrzeug_id | UUID (FK) | ❌ | Fahrzeug (falls bei Erzeugung bekannt) | |
+| deckungsumfang | Enum | ✅ | Gewählter Deckungsumfang | `HP_TK` |
+| fahrzeugart | Enum | ✅ | Fahrzeugart (aus UC-KFZ-00) | `PKW` |
 | status | Enum | ✅ | Status der eVB | `ERZEUGT` |
 | erzeugt_am | Timestamp | ✅ | Erzeugungszeitpunkt | |
 | gueltig_bis | Date | ✅ | Ablaufdatum (6 Monate nach Erzeugung) | `2026-09-19` |
 | verwendet_am | Timestamp | ❌ | Zeitpunkt der Verwendung bei Zulassungsstelle | |
 | storniert_am | Timestamp | ❌ | Stornierungszeitpunkt | |
+| antragsanmahnung_id | UUID (FK) | ❌ | Verknüpfte Antragsanmahnung (bei eVB ohne Antrag + Zulassung) | |
 
 **Constraints:**
 - `evb_nummer` UNIQUE
-- Genau eine der Referenzen (`antrag_id` oder `vertrag_id`) muss gesetzt sein
+- `partner_id` ist immer gesetzt (auch bei eVB ohne Antrag)
+- `antrag_id` / `vertrag_id` können beide NULL sein (eVB ohne Antrag) oder genau eines gesetzt
 - Automatische Stornierung nach 6 Monaten ohne Verwendung
 
 ---
@@ -726,6 +732,44 @@
 
 ---
 
+### 4.8 Antragsanmahnung (NEU)
+
+> Aufforderung zur Nachholung eines Antrags, wenn eine eVB ohne Antrag ausgestellt und anschließend von der Zulassungsstelle verwendet wurde.
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|----------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| anmahnung_nummer | String(20) | ✅ | Fachliche Vorgangsnummer | `ANM-2026-000001` |
+| evb_id | UUID (FK) | ✅ | Referenz auf die auslösende eVB-Nummer | |
+| partner_id | UUID (FK) | ✅ | Versicherungsnehmer | |
+| angebot_id | UUID (FK) | ❌ | Erzeugtes/zugeordnetes Angebot (wenn erledigt) | |
+| antrag_id | UUID (FK) | ❌ | Erzeugter/zugeordneter Antrag (wenn erledigt) | |
+| status | Enum | ✅ | Anmahnungsstatus (→ AntragsanmahnungStatus) | `OFFEN` |
+| fahrzeugart | Enum | ✅ | Fahrzeugart aus eVB | `PKW` |
+| deckungsumfang | Enum | ✅ | Deckungsumfang aus eVB | `HP_TK` |
+| zulassung_kennzeichen | String(15) | ❌ | Amtliches Kennzeichen (aus GDV-Rückmeldung) | `MS-AB 1234` |
+| zulassung_fin | String(17) | ❌ | FIN (aus GDV-Rückmeldung) | `WVWZZZ3CZWE123456` |
+| zulassung_halter_name | String(200) | ❌ | Halter-Name (aus GDV-Rückmeldung) | `Mustermann, Max` |
+| zulassung_erstzulassung | Date | ❌ | Datum der Erstzulassung | `2026-04-01` |
+| zulassung_hsn | String(4) | ❌ | HSN (aus GDV-Rückmeldung, falls vorhanden) | `0603` |
+| zulassung_tsn | String(3) | ❌ | TSN (aus GDV-Rückmeldung, falls vorhanden) | `BPM` |
+| zulassung_datum | Date | ✅ | Datum der Zulassung (= Verwendung der eVB) | `2026-04-01` |
+| frist_anmahnung | Date | ✅ | Anmahnungsfrist (14 Tage nach Zulassung) | `2026-04-15` |
+| frist_eskalation | Date | ✅ | Eskalationsfrist (28 Tage nach Zulassung) | `2026-04-29` |
+| stornierung_grund | String(500) | ❌ | Begründung bei Stornierung | |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `anmahnung_nummer` UNIQUE
+- `evb_id` UNIQUE (eine eVB erzeugt max. eine Antragsanmahnung)
+- `angebot_id` / `antrag_id` werden gesetzt, wenn Anmahnung erledigt wird
+- Fristen werden beim Erstellen automatisch berechnet
+
+**Historisierung:** ✅ Hibernate Envers
+
+---
+
 ## 5. Enumerationen / Wertelisten
 
 ### 5.1 Angebotsstatus
@@ -832,7 +876,25 @@
 | `BLAU` | Blaues Kennzeichen | 2027, 2030, 2033, … |
 | `GRUEN` | Grünes Kennzeichen | 2028, 2031, 2034, … |
 
-### 5.11 Fahrzeugart (KFZ)
+### 5.11 AntragsanmahnungStatus (NEU)
+
+| Wert | Beschreibung | Folgestatus |
+|------|-------------|-------------|
+| `OFFEN` | Antragsanmahnung erzeugt, Bearbeitung steht aus | ERLEDIGT, UEBERFAELLIG, STORNIERT |
+| `UEBERFAELLIG` | 14-Tage-Frist abgelaufen, noch nicht bearbeitet | ERLEDIGT, ESKALIERT, STORNIERT |
+| `ESKALIERT` | 28-Tage-Frist abgelaufen, Teamleiter muss handeln | ERLEDIGT, STORNIERT |
+| `ERLEDIGT` | Antrag wurde erstellt oder zugeordnet | – (Endzustand) |
+| `STORNIERT` | Manuell storniert (kein Antrag nötig) | – (Endzustand) |
+
+### 5.12 EvbDeckungsumfang (NEU)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `HP` | Nur Haftpflicht |
+| `HP_TK` | Haftpflicht + Teilkasko |
+| `HP_VK` | Haftpflicht + Vollkasko |
+
+### 5.13 Fahrzeugart (KFZ)
 
 > Aus UC-KFZ-00.
 
@@ -847,14 +909,14 @@
 | `ANHAENGER` | FA-07 | Anhänger ohne eigenen Antrieb | Nur HP |
 | `SONDERFAHRZEUG` | FA-08 | Land-/Forstwirtschaft, Baumaschinen | Spezialtarif |
 
-### 5.12 Sparte
+### 5.14 Sparte
 
 | Wert | Beschreibung |
 |------|-------------|
 | `KFZ` | Kraftfahrzeugversicherung (initial) |
 | _weitere Sparten werden bei Bedarf ergänzt_ | |
 
-### 5.13 Zahlungsweise
+### 5.15 Zahlungsweise
 
 | Wert | Beschreibung | Aufschlag |
 |------|-------------|-----------|
@@ -863,7 +925,7 @@
 | `VIERTELJAEHRLICH` | Viermal pro Jahr | ~5% |
 | `MONATLICH` | Monatlich | ~5% |
 
-### 5.14 Weitere Enumerationen
+### 5.16 Weitere Enumerationen
 
 | Enum | Werte | Verwendet in |
 |------|-------|-------------|
@@ -909,6 +971,11 @@
 | **KFZ:** Fahrzeug | KfzTarifierung | 1:1 | KfzTarifierung.fahrzeug_id | Tarifmerkmale pro Fahrzeug |
 | **KFZ:** Vertrag | SfKlassenHistorie | 1:n | SfKlassenHistorie.vertrag_id | SF-Verlauf |
 | **KFZ:** Antrag/Vertrag | EvbNummer | 1:0..n | EvbNummer.antrag_id / vertrag_id | eVB-Nummern |
+| **KFZ:** Partner | EvbNummer | 1:n | EvbNummer.partner_id | eVBs eines Partners (auch ohne Antrag) |
+| **KFZ:** EvbNummer | Antragsanmahnung | 1:0..1 | Antragsanmahnung.evb_id | eVB löst Anmahnung aus |
+| **KFZ:** Partner | Antragsanmahnung | 1:n | Antragsanmahnung.partner_id | Anmahnungen eines Partners |
+| **KFZ:** Antragsanmahnung | Angebot | 1:0..1 | Antragsanmahnung.angebot_id | Erzeugtes Angebot |
+| **KFZ:** Antragsanmahnung | Antrag | 1:0..1 | Antragsanmahnung.antrag_id | Erzeugter/zugeordneter Antrag |
 | **KFZ:** SfKlassenHistorie | Schaden | n:0..1 | SfKlassenHistorie.schaden_id | Auslösender Schaden |
 | **KFZ:** Antrag | VwbNachricht | 1:0..1 | VwbNachricht.antrag_id | VWB-Zugang (SF-Übernahme) |
 | **KFZ:** Vertrag | VwbNachricht | 1:0..n | VwbNachricht.vertrag_id | VWB-Abgang (SF-Auskunft) |
@@ -928,6 +995,7 @@
   "fahrzeugart": "PKW",
   "fahrzeug_id": "uuid-referenz",
   "evb_nummer": "A1B2C3D",
+  "antragsanmahnung_id": null,
   "saisonkennzeichen": false,
   "saison_von": null,
   "saison_bis": null,
@@ -1000,7 +1068,7 @@
 | Flexibilität für neue Sparten | ❌ DDL-Änderung nötig | ✅ Ohne Schema-Migration |
 | Performance bei großen Datenmengen | ✅ Index auf Spalten | ⚠️ GIN-Index auf JSONB |
 
-**Entscheidung:** KFZ als initiale Sparte bekommt **eigene Tabellen** (Fahrzeug, KfzTarifierung, EvbNummer, SfKlassenHistorie, VwbNachricht, VkzKennzeichen, VkzKontingent) für optimale Abfragbarkeit. JSONB-Felder dienen als **Ergänzung** für unkritische Daten und als **Standard für künftige Sparten** bis diese eigene Tabellen rechtfertigen.
+**Entscheidung:** KFZ als initiale Sparte bekommt **eigene Tabellen** (Fahrzeug, KfzTarifierung, EvbNummer, SfKlassenHistorie, VwbNachricht, VkzKennzeichen, VkzKontingent, Antragsanmahnung) für optimale Abfragbarkeit. JSONB-Felder dienen als **Ergänzung** für unkritische Daten und als **Standard für künftige Sparten** bis diese eigene Tabellen rechtfertigen.
 
 ---
 
@@ -1030,6 +1098,7 @@ fahrzeug      → fahrzeug_aud      (KFZ)
 kfz_tarifierung → kfz_tarifierung_aud (KFZ)
 vwb_nachricht → vwb_nachricht_aud  (KFZ)
 vkz_kennzeichen → vkz_kennzeichen_aud (KFZ)
+antragsanmahnung → antragsanmahnung_aud (KFZ)
 ```
 
 Jeder Audit-Eintrag enthält:
@@ -1092,6 +1161,11 @@ CREATE TRIGGER versioning_trigger
 | vkz_kennzeichen | idx_vkz_status | status | B-Tree | Verfügbare Kennzeichen |
 | vkz_kennzeichen | idx_vkz_vertrag | vertrag_id | B-Tree | Kennzeichen eines Vertrags |
 | vkz_kontingent | idx_vkz_kontingent_nr | kontingent_nummer | UNIQUE B-Tree | Kontingent-Suche |
+| antragsanmahnung | idx_anm_nummer | anmahnung_nummer | UNIQUE B-Tree | Anmahnungssuche |
+| antragsanmahnung | idx_anm_status | status | B-Tree | Offene Anmahnungen |
+| antragsanmahnung | idx_anm_frist | frist_anmahnung | B-Tree | Fristüberwachung |
+| antragsanmahnung | idx_anm_evb | evb_id | UNIQUE B-Tree | Anmahnung zur eVB |
+| antragsanmahnung | idx_anm_partner | partner_id | B-Tree | Anmahnungen eines Partners |
 | angebot | idx_angebot_spezifisch | spartenspezifische_daten | GIN | JSONB-Abfragen |
 
 ### 9.2 Partitionierung
@@ -1169,6 +1243,7 @@ CREATE TRIGGER versioning_trigger
 | eVB-Nummer | `{7-stellig alphanum.}` | `A1B2C3D` | GDV-konform, systemgeneriert |
 | VWB-Vorgang | `VWB-{YYYY}-{NNNNNN}` | `VWB-2026-000001` | Fortlaufend pro Jahr |
 | VKZ-Kontingent | `VKZ-B-{YYYY}-{NNN}` | `VKZ-B-2026-001` | Fortlaufend pro Jahr |
+| Antragsanmahnung | `ANM-{YYYY}-{NNNNNN}` | `ANM-2026-000001` | Fortlaufend pro Jahr |
 
 > Nummernkreise werden in einer separaten Tabelle `nummernkreis` verwaltet (Sequenz pro Entität + Jahr) und sind **threadsafe** über `SELECT ... FOR UPDATE`.
 
