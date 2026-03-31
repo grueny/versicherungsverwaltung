@@ -22,6 +22,7 @@
 | UC-KFZ-07 | eVB-Nummer stornieren | 🟡 Soll | 🔲 Offen |
 | UC-KFZ-08 | Sonderkündigung bei Beitragserhöhung | 🟡 Soll | 🔲 Offen |
 | UC-KFZ-09 | Fahrerkreis ändern | 🟡 Soll | 🔲 Offen |
+| [UC-KFZ-21](UC-KFZ-21_sfr_vertragswechsel.md) | SF-Klasse zwischen Verträgen wechseln (SFR-Transfer) | 🔴 Muss | ✅ Fertig |
 
 ### LVM-Zusatzbausteine verwalten
 
