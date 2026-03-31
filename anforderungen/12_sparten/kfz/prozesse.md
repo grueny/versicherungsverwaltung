@@ -5,15 +5,21 @@
 
 ## Prozessübersicht
 
-| Kernprozess | Abweichung in KFZ | Beschreibung |
-|-------------|-------------------|-------------|
-| Anbahnung / Angebot | Fahrzeugdaten erfassen | HSN/TSN/FIN, Typklasse, Regionalklasse ermitteln |
-| Antragsprüfung | eVB-Nummer erzeugen | Elektronische Versicherungsbestätigung für Zulassung |
-| Policierung | eVB-Statusmeldung | Rückmeldung an Zulassungsstelle |
-| Vertragswartung / Nachtrag | Fahrzeugwechsel | Sonderfall: Abmeldung Alt-Fzg, Anmeldung Neu-Fzg |
-| Beitragsanpassung | SF-Klassen-Rückstufung | Rückstufung nach Schadenfall |
-| Kündigung / Storno | Abmeldung Fahrzeug | Ruheversicherung oder Kündigung bei Abmeldung |
-| Verlängerung | Stichtagskündigung 30.11. | Sonderkündigungsrecht beachten |
+| Kernprozess | Abweichung in KFZ | Sub-Modul | Beschreibung |
+|-------------|-------------------|-----------|-------------|
+| Anbahnung / Angebot | Fahrzeugdaten erfassen | kern | HSN/TSN/FIN, Typklasse, Regionalklasse ermitteln |
+| Antragsprüfung | eVB-Nummer erzeugen | evb | Elektronische Versicherungsbestätigung für Zulassung |
+| Policierung | eVB-Statusmeldung | evb | Rückmeldung an Zulassungsstelle |
+| Policierung | VKZ-Kennzeichen zuweisen | vkz | Kennzeichen aus Bestand zuweisen (nur FA-04) |
+| Vertragswartung / Nachtrag | Fahrzeugwechsel | kern | Sonderfall: Abmeldung Alt-Fzg, Anmeldung Neu-Fzg |
+| Beitragsanpassung | SF-Klassen-Rückstufung | sfr | Rückstufung nach Schadenfall |
+| Kündigung / Storno | Abmeldung Fahrzeug | kern | Ruheversicherung oder Kündigung bei Abmeldung |
+| Kündigung / Storno | VKZ-Rücknahme | vkz | Kennzeichen zurücknehmen (nur FA-04) |
+| Verlängerung | Stichtagskündigung 30.11. | kern | Sonderkündigungsrecht beachten |
+| Verlängerung | VKZ-Saisonwechsel | vkz | Neues Kennzeichen zum 01.03. zuweisen |
+| – (Eigenständig) | VWB Zugang | sfr | SF-Anfrage an Vorversicherer bei Neukunde |
+| – (Eigenständig) | VWB Abgang | sfr | SF-Auskunft an Nachversicherer bei Abgang |
+| – (Eigenständig) | VKZ-Bestandsverwaltung | vkz | Kontingente bestellen, lagern, inventarisieren |
 
 ## Detaillierte Prozessabweichungen
 
@@ -127,3 +133,153 @@ Bei Abmeldung des Fahrzeugs bei der Zulassungsstelle tritt eine Ruheversicherung
   2. Sonderkündigungsfrist läuft (1 Monat ab Mitteilung)
   3. Bei Kündigung: Vertrag zum Erhöhungszeitpunkt beenden
 - **Ergebnis:** Vertrag beendet oder Erhöhung akzeptiert
+
+---
+
+## SFR / VWB-Verfahren (Sub-Modul: sfr)
+
+> Das Versicherer-Wechsel-Branchenverfahren (VWB) ist ein standardisiertes GDV-Verfahren zum Austausch von Schadenfreiheitsrabatt-Daten zwischen Versicherungsgesellschaften bei Versichererwechsel.
+
+### VWB Zugang (Neukunde wechselt zu uns)
+
+- **Beschreibung:** Ein neuer Versicherungsnehmer wechselt von einem anderen Versicherer zur LVM. Die SF-Klasse muss beim Vorversicherer abgefragt und übernommen werden.
+- **Auslöser:** Antrag enthält Vorversicherer-Angaben (Vorversicherer, bisherige Vertragsnummer, bisherige SF-Klasse)
+- **Ablauf:**
+  1. VWB-Anfrage an Vorversicherer senden (GDV REST API → Nachrichtentyp: SF-ANFRAGE)
+  2. Antwort des Vorversicherers empfangen (Frist: 4 Wochen)
+  3. SF-Auskunft prüfen:
+     - SF-Klasse stimmt überein → automatisch übernehmen
+     - SF-Klasse weicht ab → Schwebe erzeugen, Sachbearbeiter prüft
+     - Vorversicherer antwortet nicht → nach Fristablauf mit angegebener SF-Klasse policieren, Wiedervorlage setzen
+  4. SF-Klasse in `SfKlassenHistorie` eintragen (Änderungsgrund: `UEBERNAHME`)
+- **Ergebnis:** SF-Klasse bestätigt und in Tarifierung übernommen
+
+#### VWB-Anfrage (GDV REST API)
+
+```json
+{
+  "nachrichtentyp": "SF_ANFRAGE",
+  "anfragender_versicherer": "LVM",
+  "vorversicherer_id": "AXA",
+  "vorvertrag_nummer": "AXA-KFZ-2024-12345",
+  "versicherungsnehmer": {
+    "name": "Mustermann",
+    "vorname": "Max",
+    "geburtsdatum": "1985-03-15"
+  },
+  "angefragte_sf_klasse_hp": "SF5",
+  "angefragte_sf_klasse_vk": "SF3",
+  "stichtag": "2026-12-31"
+}
+```
+
+#### VWB-Auskunft (Antwort vom Vorversicherer)
+
+```json
+{
+  "nachrichtentyp": "SF_AUSKUNFT",
+  "referenz_id": "VWB-2026-000001",
+  "bestaetigte_sf_klasse_hp": "SF5",
+  "bestaetigte_sf_klasse_vk": "SF3",
+  "schaeden_letzte_5_jahre": 0,
+  "vertrag_beginn": "2019-01-01",
+  "vertrag_ende": "2026-12-31",
+  "kuendigungsgrund": "VN_KUENDIGUNG"
+}
+```
+
+### VWB Abgang (Bestandskunde wechselt weg)
+
+- **Beschreibung:** Ein bestehender Versicherungsnehmer kündigt und wechselt zu einem anderen Versicherer. Der Nachversicherer fragt die SF-Daten bei uns ab.
+- **Auslöser:** SF-Anfrage eines Nachversicherers empfangen (GDV REST API)
+- **Ablauf:**
+  1. SF-Anfrage empfangen und Vertrag identifizieren (über VN-Daten + Vertragsnummer)
+  2. SF-Daten aus `SfKlassenHistorie` ermitteln
+  3. Schadenhistorie der letzten 5 Jahre zusammenstellen
+  4. SF-Auskunft an Nachversicherer senden
+- **Bedingungen:**
+  - Vertrag muss existiert haben (aktiv oder gekündigt)
+  - Antwortfrist: 4 Wochen nach Eingang der Anfrage
+  - Automatische Beantwortung bei eindeutiger Zuordnung, sonst Schwebe
+- **Ergebnis:** SF-Auskunft an Nachversicherer übermittelt
+
+### VWB-Statusmodell
+
+| Status | Beschreibung | Folgestatus |
+|--------|-------------|-------------|
+| `ANFRAGE_GESENDET` | SF-Anfrage an Vorversicherer gesendet | AUSKUNFT_EMPFANGEN, FRIST_ABGELAUFEN |
+| `ANFRAGE_EMPFANGEN` | SF-Anfrage von Nachversicherer empfangen | AUSKUNFT_GESENDET |
+| `AUSKUNFT_EMPFANGEN` | Antwort des Vorversicherers empfangen | UEBERNOMMEN, ABWEICHUNG_PRUEFEN |
+| `AUSKUNFT_GESENDET` | Antwort an Nachversicherer gesendet | ABGESCHLOSSEN |
+| `ABWEICHUNG_PRUEFEN` | SF-Klasse weicht ab → manuelle Prüfung | UEBERNOMMEN, KORRIGIERT |
+| `FRIST_ABGELAUFEN` | Vorversicherer hat nicht innerhalb 4 Wochen geantwortet | UEBERNOMMEN |
+| `UEBERNOMMEN` | SF-Klasse übernommen und in Tarifierung eingepflegt | ABGESCHLOSSEN |
+| `KORRIGIERT` | SF-Klasse nach Prüfung korrigiert | ABGESCHLOSSEN |
+| `ABGESCHLOSSEN` | VWB-Vorgang abgeschlossen | – (Endzustand) |
+
+---
+
+## Versicherungskennzeichen-Verwaltung (Sub-Modul: vkz)
+
+> Für Fahrzeuge mit Versicherungskennzeichen (Mopeds, Mofas, E-Scooter – Fahrzeugart FA-04) gelten besondere Regeln: Kennzeichen werden vom Versicherer ausgegeben, haben einen festen Gültigkeitszeitraum (01.03. bis Ende Februar) und müssen physisch verwaltet werden.
+
+### VKZ-Bestandsverwaltung (Kontingent)
+
+- **Beschreibung:** Der Versicherer bestellt Versicherungskennzeichen in Kontingenten beim Hersteller und verwaltet den physischen Bestand (Lager, Ausgabe, Rücknahme, Vernichtung).
+- **Ablauf:**
+  1. Kontingent-Bestellung: Nummernkreis und Menge festlegen
+  2. Wareneingang: Kennzeichen als `AUF_LAGER` erfassen
+  3. Inventur: Periodischer Bestandsabgleich
+- **Ergebnis:** Verfügbare Kennzeichen im System abrufbar
+
+### VKZ-Zuweisung an Vertrag
+
+- **Beschreibung:** Bei Abschluss eines Versicherungskennzeichen-Vertrags wird ein verfügbares Kennzeichen aus dem Bestand dem Vertrag zugewiesen.
+- **Auslöser:** Policierung eines VKZ-Vertrags (Hook `nach_Policierung`)
+- **Ablauf:**
+  1. Verfügbares Kennzeichen aus Bestand auswählen (Status `AUF_LAGER`)
+  2. Kennzeichen dem Vertrag zuweisen (Status → `ZUGEWIESEN`)
+  3. Gültigkeitszeitraum setzen: 01.03. des aktuellen Jahres bis 28./29.02. des Folgejahres
+  4. Kennzeichen dem Kunden aushändigen oder zusenden (→ S5 Druck/Versand)
+- **Bedingungen:**
+  - Nur für Fahrzeugart `VERSICHERUNGSKENNZEICHEN` (FA-04)
+  - Ein Kennzeichen pro Vertrag im Gültigkeitszeitraum
+  - Farbe des Kennzeichens wechselt jährlich (Schwarz/Blau/Grün im 3-Jahres-Rhythmus)
+- **Ergebnis:** Kennzeichen zugewiesen und Vertrag aktiv
+
+### VKZ-Saisonwechsel (Jährliche Erneuerung)
+
+- **Beschreibung:** Zum 01.03. jeden Jahres müssen alle laufenden VKZ-Verträge ein neues Kennzeichen erhalten. Das alte Kennzeichen wird ungültig.
+- **Auslöser:** Scheduler-Job vor dem 01.03. (Vorlauf: 4 Wochen)
+- **Ablauf:**
+  1. Alle aktiven VKZ-Verträge mit Ablaufdatum Ende Februar ermitteln
+  2. Für jeden Vertrag: Neues Kennzeichen aus Bestand zuweisen
+  3. Altes Kennzeichen → Status `ABGELAUFEN`
+  4. Neues Kennzeichen an Kunden versenden (→ S5 Druck)
+  5. Beitrag für neue Saison berechnen und an Inkasso (S2) melden
+- **Bedingungen:**
+  - Vertrag muss aktiv sein und nicht gekündigt zum 01.03.
+  - Ausreichend Kennzeichen im Bestand (Kontingent-Prüfung 8 Wochen vorher)
+- **Ergebnis:** Neues Kennzeichen zugewiesen, altes ungültig, Beitrag gebucht
+
+### VKZ-Rücknahme
+
+- **Beschreibung:** Bei Kündigung oder Ablauf eines VKZ-Vertrags wird das Kennzeichen zurückgenommen.
+- **Auslöser:** Vertragskündigung oder -ablauf
+- **Ablauf:**
+  1. Kennzeichen-Status → `ZURUECKGENOMMEN`
+  2. Physische Rückgabe prüfen (Wiedervorlage falls nicht zurückgegeben)
+  3. Kennzeichen nach Prüfung → `VERNICHTET` (darf nicht wiederverwendet werden)
+- **Ergebnis:** Kennzeichen aus dem Umlauf, Vertrag beendet
+
+### VKZ-Kennzeichen-Statusmodell
+
+| Status | Beschreibung | Folgestatus |
+|--------|-------------|-------------|
+| `BESTELLT` | Kennzeichen beim Hersteller bestellt | AUF_LAGER |
+| `AUF_LAGER` | Im Bestand, verfügbar zur Zuweisung | ZUGEWIESEN |
+| `ZUGEWIESEN` | Einem Vertrag zugeordnet, in Nutzung | ABGELAUFEN, ZURUECKGENOMMEN |
+| `ABGELAUFEN` | Gültigkeitszeitraum abgelaufen (Ende Feb.) | ZURUECKGENOMMEN, VERNICHTET |
+| `ZURUECKGENOMMEN` | Physisch zurückgegeben | VERNICHTET |
+| `VERNICHTET` | Endgültig aus dem Umlauf | – (Endzustand) |
+| `VERLOREN` | Kennzeichen nicht zurückgegeben (Wiedervorlage) | VERNICHTET |

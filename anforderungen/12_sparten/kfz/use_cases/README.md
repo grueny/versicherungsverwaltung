@@ -40,6 +40,12 @@
 | UC-KFZ-16 | Kurzfristige Versicherung: Probefahrt abschließen (SB bis 1.000 €) | 🟢 Kann | 🔲 Offen |
 | UC-KFZ-17 | Kurzfristige Versicherung: Carsharing abschließen (SB bis 1.500 €) | 🟢 Kann | 🔲 Offen |
 
+### Recherche & Suche
+
+| UC-Nr. | Titel | Priorität | Status |
+|--------|-------|-----------|--------|
+| [UC-KFZ-19](UC-KFZ-19_kennzeichensuche.md) | Kennzeichensuche – Angebote, Anträge und Verträge über Kennzeichen finden | 🔴 Muss | ✅ Fertig |
+
 ### LVM-SchadenService
 
 | UC-Nr. | Titel | Priorität | Status |

@@ -24,7 +24,7 @@ Die Anforderungen sind im Ordner [`anforderungen/`](anforderungen/) strukturiert
 | 06 | [Nichtfunktionale Anforderungen](anforderungen/06_nichtfunktionale_anforderungen.md) | Performance, Sicherheit, Verfügbarkeit etc. | 🔲 Offen |
 | 07 | [Datenmodell](anforderungen/07_datenmodell.md) | Entitäten, Relationen, Enumerationen | ✅ Vollständig |
 | 08 | [Geschäftsregeln](anforderungen/08_geschaeftsregeln.md) | Spartenübergreifende Geschäftsregeln | 🔲 Offen |
-| 09 | [Schnittstellen](anforderungen/09_schnittstellen.md) | Technische Schnittstellenspezifikationen | 🔲 Offen |
+| 09 | [Schnittstellen](anforderungen/09_schnittstellen.md) | Technische Schnittstellenspezifikationen | ✅ Vollständig |
 | 10 | [UI-Anforderungen](anforderungen/10_ui_anforderungen.md) | Navigation, Layouts, Interaktionsmuster | 🔲 Offen |
 | 11 | [Technische Rahmenbedingungen](anforderungen/11_technische_rahmenbedingungen.md) | Architektur, Stack, Spartenkonfiguration | ✅ Vollständig |
 | 12 | [Sparten](anforderungen/12_sparten/) | Spartenspezifische Anforderungen | ✏️ Teilweise |
@@ -107,4 +107,7 @@ Das Bestandsführungssystem ist über Schnittstellen an folgende externe Systeme
 | Regelengine | Drools (KIE) |
 | Hook-Mechanismus | Spring ApplicationEvents |
 | Architekturstil | Modularer Monolith (Spring Modulith) |
+| Asynchrone Kommunikation | Apache Kafka (Transactional Outbox Pattern) |
+| GDV-Anbindung | GDV REST API (Typklassen, Regionalklassen, eVB, Zulassung) |
 | Contract-Tests | Spring Cloud Contract |
+| **KFZ Sub-Module** | **4 Sub-Module: kern, evb, sfr, vkz (innerhalb Spring Modulith KFZ-Modul)** |

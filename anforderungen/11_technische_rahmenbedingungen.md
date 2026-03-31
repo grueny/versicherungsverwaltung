@@ -151,6 +151,60 @@ SpartenRegistry
 └── getSpartenkonfiguration(spartenId) → Konfig ← gebündelt
 ```
 
+### KFZ-Sparte: Sub-Modul-Architektur
+
+> **Entscheidung:** Die KFZ-Sparte wird in vier fachliche Sub-Module aufgeteilt, um die hohe Komplexität (eVB-Verwaltung, SFR/VWB-Verfahren, Versicherungskennzeichen) beherrschbar zu halten. Alle Sub-Module bleiben innerhalb des KFZ Spring-Modulith-Moduls.
+
+```
+kfz/
+├── kern/           ← Fahrzeug, Tarifierung, KFZ-spezifische Hooks
+│   ├── FahrzeugService
+│   ├── KfzTarifierungService
+│   ├── KfzHookHandler          (vor_Angebotserstellung, vor_Policierung etc.)
+│   └── KfzProduktValidator
+│
+├── evb/            ← eVB-Erzeugung, GDV-Meldung, Stornierung, Ablauf
+│   ├── EvbService              (Erzeugung, Ablauf, Stornierung)
+│   ├── EvbGdvClient            (GDV REST API: Meldung/Storno)
+│   ├── EvbAblaufScheduler      (6-Monats-Timer, NOT-04)
+│   └── EvbHookHandler          (nach_Antragserstellung → eVB erzeugen)
+│
+├── sfr/            ← SF-Klassen, VWB-Verfahren, Rückstufung, Hochstufung
+│   ├── SfKlassenService        (Berechnung, Hoch-/Rückstufung)
+│   ├── SfRueckstufungEngine    (Tabelle anwenden, Rabattschutz prüfen)
+│   ├── VwbService              (VWB-Verfahren: Ein-/Ausgang)
+│   ├── VwbGdvClient            (GDV REST API: SF-Anfrage/Meldung)
+│   └── VwbHookHandler          (vor_Policierung → SF validieren/VWB prüfen)
+│
+└── vkz/            ← Versicherungskennzeichen-Verwaltung
+    ├── VkzBestandService       (Kontingente, Lager, Bestellung)
+    ├── VkzZuweisungService     (Zuweisung an Vertrag, Rücknahme)
+    ├── VkzSaisonService        (01.03.–Ende Feb. Zyklusverwaltung)
+    └── VkzHookHandler          (nach_Policierung → VKZ zuweisen)
+```
+
+#### Begründung
+
+| Kriterium | kern | evb | sfr | vkz |
+|-----------|------|-----|-----|-----|
+| **Eigener Lebenszyklus** | Fahrzeugdaten ändern sich selten | eVB: ERZEUGT→GEMELDET→VERWENDET→STORNIERT | SF: jährliche Hochstufung, Rückstufung bei Schaden; VWB: eigener Nachrichtenaustausch | VKZ: Saison 01.03.–28.02., jährliche Erneuerung |
+| **Eigene GDV-Schnittstelle** | Typklassen/Regionalklassen | eVB-Meldung/Storno | VWB-Nachrichten (SF-Anfrage/Auskunft) | – (interne Verwaltung) |
+| **Fachliche Komplexität** | Mittel | Mittel (Fristen, GDV-Meldung) | Hoch (Tabellen, Rabattschutz, VWB-Prozess) | Mittel (Kontingente, Saisonlogik) |
+| **Getrennt testbar** | ✅ | ✅ | ✅ | ✅ |
+
+#### Spring-Modulith-Packages
+
+```
+de.versicherungsverwaltung.kfz.kern.*      → @ApplicationModule
+de.versicherungsverwaltung.kfz.evb.*       → @ApplicationModule
+de.versicherungsverwaltung.kfz.sfr.*       → @ApplicationModule
+de.versicherungsverwaltung.kfz.vkz.*       → @ApplicationModule
+```
+
+Die Sub-Module kommunizieren untereinander über **Spring Events** (z. B. `SfRueckstufungEvent` aus sfr → evb prüft eVB-Status). Direkte Methoden-Aufrufe erfolgen nur über definierte **Internal APIs** innerhalb des KFZ-Moduls.
+
+---
+
 ### Vorteile dieses Ansatzes
 
 - **Produkte in DB** → Fachbereich kann Tarife/Deckungsbausteine pflegen, ohne Release-Zyklus

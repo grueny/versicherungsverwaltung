@@ -452,6 +452,9 @@
 | selbstbeteiligung | BigDecimal(10,2) | ❌ | Gewählte Selbstbeteiligung (EUR) | `150.00` |
 | tarifmerkmale | JSONB | ❌ | Gewählte Tarifmerkmal-Werte | `{"sf_klasse":"SF5","fahrerkreis":"ALLE"}` |
 | deckungsbausteine | JSONB | ❌ | Gewählte optionale Bausteine | `["erweiterter_wildschaden","tierbiss_folge"]` |
+| berechnungsdetails | JSONB | ❌ | Zwischenergebnisse der Prämienberechnung (→ DM-06) | `{"grundbeitrag":380.00, ...}` |
+
+> **Hinweis (DM-06):** `berechnungsdetails` speichert die vollständige Berechnungsherleitung, um bei Rückfragen oder Missverständnissen die Prämienberechnung nachvollziehen zu können. Beispielstruktur → Abschnitt 7.4.
 
 ### 3.2 AntragProdukt
 
@@ -466,6 +469,7 @@
 | selbstbeteiligung | BigDecimal(10,2) | ❌ | Gewählte Selbstbeteiligung |
 | tarifmerkmale | JSONB | ❌ | Gewählte Tarifmerkmal-Werte |
 | deckungsbausteine | JSONB | ❌ | Gewählte optionale Bausteine |
+| berechnungsdetails | JSONB | ❌ | Zwischenergebnisse der Prämienberechnung (→ DM-06) |
 
 ### 3.3 VertragsstandProdukt
 
@@ -634,6 +638,94 @@
 
 ---
 
+### 4.5 VwbNachricht (NEU)
+
+> Nachrichten des Versicherer-Wechsel-Branchenverfahrens (VWB) – SF-Anfragen und SF-Auskünfte zwischen Versicherern.
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|----------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| vwb_nummer | String(20) | ✅ | Fachliche VWB-Vorgangsnummer | `VWB-2026-000001` |
+| vertrag_id | UUID (FK) | ❌ | Referenz auf den KFZ-Vertrag (bei Abgang) | |
+| antrag_id | UUID (FK) | ❌ | Referenz auf den KFZ-Antrag (bei Zugang) | |
+| richtung | Enum | ✅ | ZUGANG (wir fragen) oder ABGANG (wir antworten) | `ZUGANG` |
+| status | Enum | ✅ | VWB-Status (→ VwbStatus) | `ANFRAGE_GESENDET` |
+| partner_versicherer_id | String(50) | ✅ | Kennung des Vor-/Nachversicherers | `AXA` |
+| partner_vertrag_nummer | String(50) | ❌ | Vertragsnummer beim Vor-/Nachversicherer | `AXA-KFZ-2024-12345` |
+| angefragte_sf_klasse_hp | String(5) | ❌ | Angefragte SF-Klasse HP | `SF5` |
+| angefragte_sf_klasse_vk | String(5) | ❌ | Angefragte SF-Klasse VK | `SF3` |
+| bestaetigte_sf_klasse_hp | String(5) | ❌ | Bestätigte SF-Klasse HP (aus Auskunft) | `SF5` |
+| bestaetigte_sf_klasse_vk | String(5) | ❌ | Bestätigte SF-Klasse VK (aus Auskunft) | `SF3` |
+| schaeden_letzte_5_jahre | Integer | ❌ | Anzahl Schäden in den letzten 5 Jahren | `0` |
+| stichtag | Date | ✅ | Stichtag der SF-Abfrage | `2026-12-31` |
+| frist_bis | Date | ✅ | Antwortfrist (4 Wochen nach Anfrage) | `2027-01-28` |
+| gesendet_am | Timestamp | ❌ | Zeitpunkt des Versands | |
+| empfangen_am | Timestamp | ❌ | Zeitpunkt des Empfangs | |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `vwb_nummer` UNIQUE
+- Genau eine der Referenzen (`vertrag_id` bei Abgang, `antrag_id` bei Zugang) muss gesetzt sein
+- `frist_bis = gesendet_am + 4 Wochen` (automatisch berechnet)
+
+**Historisierung:** ✅ Hibernate Envers
+
+---
+
+### 4.6 VkzKennzeichen (NEU)
+
+> Physisches Versicherungskennzeichen – Bestandsverwaltung (Kontingent, Zuweisung, Rücknahme).
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|----------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| kennzeichen_nummer | String(20) | ✅ | Aufgedruckte Kennzeichen-Nummer | `051-ABC` |
+| farbe | Enum | ✅ | Kennzeichenfarbe der Saison | `SCHWARZ` |
+| saison_jahr | Integer | ✅ | Versicherungsjahr (01.03.YYYY – 28.02.YYYY+1) | `2026` |
+| gueltig_ab | Date | ✅ | Beginn der Gültigkeit | `2026-03-01` |
+| gueltig_bis | Date | ✅ | Ende der Gültigkeit | `2027-02-28` |
+| status | Enum | ✅ | Kennzeichen-Status (→ VkzKennzeichenStatus) | `AUF_LAGER` |
+| vertrag_id | UUID (FK) | ❌ | Zugewiesener Vertrag (wenn ZUGEWIESEN) | |
+| partner_id | UUID (FK) | ❌ | Versicherungsnehmer (wenn ZUGEWIESEN) | |
+| kontingent_id | UUID (FK) | ✅ | Referenz auf Bestellkontingent | |
+| zugewiesen_am | Timestamp | ❌ | Zeitpunkt der Zuweisung | |
+| zurueckgenommen_am | Timestamp | ❌ | Zeitpunkt der Rücknahme | |
+| vernichtet_am | Timestamp | ❌ | Zeitpunkt der Vernichtung | |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `kennzeichen_nummer` + `saison_jahr` UNIQUE
+- `vertrag_id` Pflicht wenn Status = `ZUGEWIESEN`
+- `farbe` folgt 3-Jahres-Rhythmus: 2026=SCHWARZ, 2027=BLAU, 2028=GRUEN, 2029=SCHWARZ, …
+
+**Historisierung:** ✅ Hibernate Envers
+
+---
+
+### 4.7 VkzKontingent (NEU)
+
+> Bestellkontingent für Versicherungskennzeichen – Gruppierung einer Bestellung.
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|----------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| kontingent_nummer | String(20) | ✅ | Fachliche Bestellnummer | `VKZ-B-2026-001` |
+| saison_jahr | Integer | ✅ | Für welche Saison bestellt | `2026` |
+| farbe | Enum | ✅ | Kennzeichenfarbe | `SCHWARZ` |
+| anzahl_bestellt | Integer | ✅ | Bestellte Menge | `5000` |
+| anzahl_geliefert | Integer | ❌ | Gelieferte Menge | `5000` |
+| bestellt_am | Date | ✅ | Bestelldatum | `2025-12-01` |
+| geliefert_am | Date | ❌ | Lieferdatum | `2026-01-15` |
+| erstellt_am | Timestamp | ✅ | | |
+| geaendert_am | Timestamp | ✅ | | |
+
+**Constraints:**
+- `kontingent_nummer` UNIQUE
+
+---
+
 ## 5. Enumerationen / Wertelisten
 
 ### 5.1 Angebotsstatus
@@ -706,7 +798,41 @@
 | `VERWENDET` | Bei Zulassungsstelle verwendet |
 | `STORNIERT` | Storniert (nicht verwendet oder Antrag storniert) |
 
-### 5.8 Fahrzeugart (KFZ)
+### 5.8 VwbStatus (NEU)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `ANFRAGE_GESENDET` | SF-Anfrage an Vorversicherer gesendet |
+| `ANFRAGE_EMPFANGEN` | SF-Anfrage von Nachversicherer empfangen |
+| `AUSKUNFT_EMPFANGEN` | Antwort des Vorversicherers empfangen |
+| `AUSKUNFT_GESENDET` | Antwort an Nachversicherer gesendet |
+| `ABWEICHUNG_PRUEFEN` | SF-Klasse weicht ab → manuelle Prüfung |
+| `FRIST_ABGELAUFEN` | Vorversicherer hat nicht innerhalb 4 Wochen geantwortet |
+| `UEBERNOMMEN` | SF-Klasse übernommen und in Tarifierung eingepflegt |
+| `KORRIGIERT` | SF-Klasse nach Prüfung korrigiert |
+| `ABGESCHLOSSEN` | VWB-Vorgang abgeschlossen |
+
+### 5.9 VkzKennzeichenStatus (NEU)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `BESTELLT` | Kennzeichen beim Hersteller bestellt |
+| `AUF_LAGER` | Im Bestand, verfügbar zur Zuweisung |
+| `ZUGEWIESEN` | Einem Vertrag zugeordnet, in Nutzung |
+| `ABGELAUFEN` | Gültigkeitszeitraum abgelaufen |
+| `ZURUECKGENOMMEN` | Physisch zurückgegeben |
+| `VERNICHTET` | Endgültig aus dem Umlauf |
+| `VERLOREN` | Nicht zurückgegeben, Wiedervorlage |
+
+### 5.10 VkzFarbe (NEU)
+
+| Wert | Beschreibung | Saison-Beispiele |
+|------|-------------|------------------|
+| `SCHWARZ` | Schwarzes Kennzeichen | 2026, 2029, 2032, … |
+| `BLAU` | Blaues Kennzeichen | 2027, 2030, 2033, … |
+| `GRUEN` | Grünes Kennzeichen | 2028, 2031, 2034, … |
+
+### 5.11 Fahrzeugart (KFZ)
 
 > Aus UC-KFZ-00.
 
@@ -721,14 +847,14 @@
 | `ANHAENGER` | FA-07 | Anhänger ohne eigenen Antrieb | Nur HP |
 | `SONDERFAHRZEUG` | FA-08 | Land-/Forstwirtschaft, Baumaschinen | Spezialtarif |
 
-### 5.9 Sparte
+### 5.12 Sparte
 
 | Wert | Beschreibung |
 |------|-------------|
 | `KFZ` | Kraftfahrzeugversicherung (initial) |
 | _weitere Sparten werden bei Bedarf ergänzt_ | |
 
-### 5.10 Zahlungsweise
+### 5.13 Zahlungsweise
 
 | Wert | Beschreibung | Aufschlag |
 |------|-------------|-----------|
@@ -737,7 +863,7 @@
 | `VIERTELJAEHRLICH` | Viermal pro Jahr | ~5% |
 | `MONATLICH` | Monatlich | ~5% |
 
-### 5.11 Weitere Enumerationen
+### 5.14 Weitere Enumerationen
 
 | Enum | Werte | Verwendet in |
 |------|-------|-------------|
@@ -784,6 +910,10 @@
 | **KFZ:** Vertrag | SfKlassenHistorie | 1:n | SfKlassenHistorie.vertrag_id | SF-Verlauf |
 | **KFZ:** Antrag/Vertrag | EvbNummer | 1:0..n | EvbNummer.antrag_id / vertrag_id | eVB-Nummern |
 | **KFZ:** SfKlassenHistorie | Schaden | n:0..1 | SfKlassenHistorie.schaden_id | Auslösender Schaden |
+| **KFZ:** Antrag | VwbNachricht | 1:0..1 | VwbNachricht.antrag_id | VWB-Zugang (SF-Übernahme) |
+| **KFZ:** Vertrag | VwbNachricht | 1:0..n | VwbNachricht.vertrag_id | VWB-Abgang (SF-Auskunft) |
+| **KFZ:** Vertrag | VkzKennzeichen | 1:0..n | VkzKennzeichen.vertrag_id | Zugewiesene Kennzeichen (pro Saison) |
+| **KFZ:** VkzKontingent | VkzKennzeichen | 1:n | VkzKennzeichen.kontingent_id | Kennzeichen eines Kontingents |
 
 ---
 
@@ -825,6 +955,41 @@
 }
 ```
 
+### 7.4 JSONB-Schema Berechnungsdetails (Angebot/Antrag → DM-06)
+
+> Zwischenergebnisse der Prämienberechnung zur Nachvollziehbarkeit bei Rückfragen.
+
+```json
+{
+  "berechnungsdatum": "2026-03-19T14:22:00",
+  "tarifversion": "KFZ-2026-Q1",
+  "grundbeitrag": 380.00,
+  "sf_rabatt_prozent": -25.0,
+  "sf_rabatt_betrag": -95.00,
+  "typklassen_zuschlag": 42.50,
+  "regionalklassen_zuschlag": 18.30,
+  "fahrerkreis_zuschlag": 0.00,
+  "fahrleistung_zuschlag": 12.00,
+  "stellplatz_rabatt": -8.50,
+  "zahlungsweise_aufschlag_prozent": 0.0,
+  "zahlungsweise_aufschlag_betrag": 0.00,
+  "zwischensumme_netto": 349.30,
+  "versicherungssteuer_prozent": 19.0,
+  "versicherungssteuer_betrag": 66.37,
+  "endbeitrag_brutto": 415.67,
+  "einzelposten": [
+    { "bezeichnung": "Grundbeitrag HP", "betrag": 280.00 },
+    { "bezeichnung": "Grundbeitrag TK", "betrag": 100.00 },
+    { "bezeichnung": "SF-Rabatt SF5 HP", "betrag": -70.00 },
+    { "bezeichnung": "SF-Rabatt SF5 TK", "betrag": -25.00 }
+  ]
+}
+```
+
+> **Hinweis:** Im `VertragsstandProdukt` werden Berechnungsdetails **nicht** persistiert – dort gilt nur der finale policierte Beitrag. Die Zwischenergebnisse bleiben über das Angebot/Antrag dauerhaft abrufbar.
+
+---
+
 ### 7.3 Design-Prinzip: Tabelle vs. JSONB
 
 | Kriterium | Eigene Tabelle | JSONB-Feld |
@@ -835,7 +1000,7 @@
 | Flexibilität für neue Sparten | ❌ DDL-Änderung nötig | ✅ Ohne Schema-Migration |
 | Performance bei großen Datenmengen | ✅ Index auf Spalten | ⚠️ GIN-Index auf JSONB |
 
-**Entscheidung:** KFZ als initiale Sparte bekommt **eigene Tabellen** (Fahrzeug, KfzTarifierung, EvbNummer, SfKlassenHistorie) für optimale Abfragbarkeit. JSONB-Felder dienen als **Ergänzung** für unkritische Daten und als **Standard für künftige Sparten** bis diese eigene Tabellen rechtfertigen.
+**Entscheidung:** KFZ als initiale Sparte bekommt **eigene Tabellen** (Fahrzeug, KfzTarifierung, EvbNummer, SfKlassenHistorie, VwbNachricht, VkzKennzeichen, VkzKontingent) für optimale Abfragbarkeit. JSONB-Felder dienen als **Ergänzung** für unkritische Daten und als **Standard für künftige Sparten** bis diese eigene Tabellen rechtfertigen.
 
 ---
 
@@ -863,6 +1028,8 @@ schwebe       → schwebe_aud
 vorgang       → vorgang_aud
 fahrzeug      → fahrzeug_aud      (KFZ)
 kfz_tarifierung → kfz_tarifierung_aud (KFZ)
+vwb_nachricht → vwb_nachricht_aud  (KFZ)
+vkz_kennzeichen → vkz_kennzeichen_aud (KFZ)
 ```
 
 Jeder Audit-Eintrag enthält:
@@ -918,6 +1085,13 @@ CREATE TRIGGER versioning_trigger
 | fahrzeug | idx_fahrzeug_kennzeichen | amtliches_kennzeichen | B-Tree | Kennzeichen-Suche |
 | fahrzeug | idx_fahrzeug_hsn_tsn | hsn, tsn | B-Tree | Typklassen-Lookup |
 | evb_nummer | idx_evb_nummer | evb_nummer | UNIQUE B-Tree | eVB-Suche |
+| vwb_nachricht | idx_vwb_nummer | vwb_nummer | UNIQUE B-Tree | VWB-Suche |
+| vwb_nachricht | idx_vwb_status | status | B-Tree | Offene VWB-Vorgänge |
+| vwb_nachricht | idx_vwb_frist | frist_bis | B-Tree | Fristüberwachung |
+| vkz_kennzeichen | idx_vkz_nummer_saison | kennzeichen_nummer, saison_jahr | UNIQUE B-Tree | Kennzeichen-Suche |
+| vkz_kennzeichen | idx_vkz_status | status | B-Tree | Verfügbare Kennzeichen |
+| vkz_kennzeichen | idx_vkz_vertrag | vertrag_id | B-Tree | Kennzeichen eines Vertrags |
+| vkz_kontingent | idx_vkz_kontingent_nr | kontingent_nummer | UNIQUE B-Tree | Kontingent-Suche |
 | angebot | idx_angebot_spezifisch | spartenspezifische_daten | GIN | JSONB-Abfragen |
 
 ### 9.2 Partitionierung
@@ -993,6 +1167,8 @@ CREATE TRIGGER versioning_trigger
 | Schwebe | `SW-{YYYY}-{NNNNNN}` | `SW-2026-000042` | Fortlaufend pro Jahr |
 | Schaden | `SD-{YYYY}-{NNNNNN}` | `SD-2026-000123` | Aus Schadenverwaltung (S6) |
 | eVB-Nummer | `{7-stellig alphanum.}` | `A1B2C3D` | GDV-konform, systemgeneriert |
+| VWB-Vorgang | `VWB-{YYYY}-{NNNNNN}` | `VWB-2026-000001` | Fortlaufend pro Jahr |
+| VKZ-Kontingent | `VKZ-B-{YYYY}-{NNN}` | `VKZ-B-2026-001` | Fortlaufend pro Jahr |
 
 > Nummernkreise werden in einer separaten Tabelle `nummernkreis` verwaltet (Sequenz pro Entität + Jahr) und sind **threadsafe** über `SELECT ... FOR UPDATE`.
 
@@ -1002,11 +1178,11 @@ CREATE TRIGGER versioning_trigger
 
 | Nr. | Frage | Kontext |
 |-----|-------|---------|
-| DM-01 | Soll die Partner-Entität um Kommunikationspräferenzen erweitert werden (z. B. bevorzugter Kontaktweg)? | Partner |
+| ~~DM-01~~ | ✅ **Entschieden:** Kontakt- und Versandwege je Dokumententyp werden **nicht** im Kerndatenmodell abgebildet. Diese Daten werden in einer separaten Schnittstelle des Partner-Systems (S7) gespeichert und verwaltet. Die Versicherungsverwaltung konsumiert diese bei Bedarf per API-Aufruf. | Partner / S7 |
 | DM-02 | Werden Zweitversicherungsnehmer oder weitere beteiligte Personen am Vertrag benötigt? | Partner / Vertrag |
 | DM-03 | Soll ein Dokumentenarchiv (Referenzen auf gescannte Unterlagen, Wertgutachten, SF-Nachweise) im Modell abgebildet werden? | Allgemein |
-| DM-04 | Wie werden Adressänderungen gehandhabt – als neue Adress-Entität oder als Update auf Partner? | Partner / Historisierung |
+| ~~DM-04~~ | ✅ **Entschieden:** Die Historisierung der Partnerdaten (inkl. Adressdaten) wird vollständig im **Partner-System (S7)** verwaltet. Die Versicherungsverwaltung hält nur den jeweils aktuellen Stand des Partners vor und zieht diesen bei Bedarf per API-Aufruf. Eine eigene Adress-Entität oder Adresshistorie im Kerndatenmodell ist **nicht** erforderlich. Die lokale Partner-Entität wird bei fachlichem Bedarf (z. B. Angebotserstellung, Policierung) synchronisiert. Hibernate Envers protokolliert weiterhin Änderungen am lokalen Datenbestand für die Revisionssicherheit innerhalb der Versicherungsverwaltung. | Partner / S7 |
 | DM-05 | Gibt es ein Konzept für Vermittler/Makler-Zuordnung am Vertrag? | Vertrag (→ 03_stakeholder) |
-| DM-06 | Sollen Prämienberechnungs-Zwischenergebnisse persistiert werden oder nur der Endbeitrag? | Angebot / Antrag |
+| ~~DM-06~~ | ✅ **Entschieden:** Prämienberechnungs-Zwischenergebnisse werden in Angeboten und Anträgen **mitgespeichert**, um bei Missverständnissen oder Unklarheiten nachvollziehbar darauf zurückgreifen zu können. Die Persistierung erfolgt als JSONB-Feld `berechnungsdetails` in `AngebotProdukt` und `AntragProdukt` (→ Abschnitt 3). Inhalt: Einzelposten der Prämienberechnung (Grundbeitrag, Zu-/Abschläge, SF-Rabatt, Zahlungsweiseaufschlag, etc.). Im `VertragsstandProdukt` wird nur der finale policierte Beitrag gespeichert. | Angebot / Antrag |
 | DM-07 | Welche konkreten Aussteuerungsregeln gelten für die initiale KFZ-Sparte? | Aussteuerungsregel |
 | DM-08 | Wie wird mit Saisonkennzeichen (KFZ) umgegangen – eigene Vertragslaufzeitlogik? | Vertrag / KFZ |
