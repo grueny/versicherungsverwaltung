@@ -18,6 +18,7 @@
 | UC-KFZ-04 | Fahrzeugwechsel durchführen | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-05 | SF-Rückstufung nach Schadenfall | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-06 | Ruheversicherung aktivieren | 🔴 Muss | 🔲 Offen |
+| [UC-KFZ-20](UC-KFZ-20_fahrzeug_stilllegung.md) | Fahrzeug-Stilllegung durch Zulassungsstelle – Vertragsstornierung | 🔴 Muss | ✅ Fertig |
 | UC-KFZ-07 | eVB-Nummer stornieren | 🟡 Soll | 🔲 Offen |
 | UC-KFZ-08 | Sonderkündigung bei Beitragserhöhung | 🟡 Soll | 🔲 Offen |
 | UC-KFZ-09 | Fahrerkreis ändern | 🟡 Soll | 🔲 Offen |
