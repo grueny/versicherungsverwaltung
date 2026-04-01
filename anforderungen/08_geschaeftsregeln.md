@@ -12,6 +12,7 @@
 | GR-V02 | Ein Vertragsstand gehört immer zu genau einem Vorgang (Neugeschäft, Änderung, Stornierung) | Vertragsstand kann nicht ohne Vorgangszuordnung erzeugt werden | 1:1-Zuordnung Vertragsstand → Vorgang prüfen | UC-02 (GR-08) |
 | GR-V03 | Der Vorgangstyp wird automatisch aus dem Antragskontext ermittelt (neuer Vertrag = Neugeschäft, bestehender Vertrag = Änderung) | Vorgangstyp wird systemseitig gesetzt | Existiert Vertrag? Ja → Änderung, Nein → Neugeschäft | UC-02 (GR-09) |
 | GR-V04 | Bei Ablehnung eines Antrags wird kein Vertragsstand erzeugt; die Schwebe wird geschlossen | Kein Vertrag bei Ablehnung | Antragsstatus = „Abgelehnt" → keine Vertragsstand-Erzeugung; Schwebe → „Geschlossen" | UC-02 (GR-11) |
+| GR-V05 | Bei jeder Policierung wird die Vertragsbewegung an das DataWarehouse (S4) über Kafka-Topic `vertrag.datawarehouse.bewegungen` gemeldet | DataWarehouse erhält vollständige Bestandsdaten und Vertragsbewegungen | Kafka-Message muss Vertragsnummer, Sparte, Vorgangstyp, Beitrag und Zeitstempel enthalten | UC-05 (GR-12) |
 
 ## Kundenbezogene Regeln
 
@@ -45,3 +46,8 @@
 | GR-A05 | Bei jeder Freigabe wird eine Schwebe angelegt, unabhängig davon, ob der Antrag ausgesteuert wird | Schwebe dokumentiert den offenen Vorgang | Freigabe → Schwebe muss erzeugt werden | UC-02 (GR-06) |
 | GR-A06 | Aussteuerungsregeln sind konfigurierbar (pro Sparte und spartenübergreifend) und bestimmen, ob ein Antrag dem Innendienst vorgelegt wird | Antrag wird ausgesteuert oder dunkelverarbeitet | Regelengine prüft Aussteuerungskriterien | UC-02 (GR-07) |
 | GR-A07 | Ein ausgesteuerter Antrag kann vom Innendienst freigegeben, abgelehnt oder zurückgewiesen werden | Drei Entscheidungsoptionen bei ausgesteuerten Anträgen | Innendienst-Kompetenz + Pflichtauswahl Entscheidung | UC-02 (GR-10) |
+| GR-A08 | Bei der Policierung werden immer alle vier Schnittstellen aufgerufen: DataWarehouse (S4), Provision (S1), Konzerninkasso (S2) und Druck (S5) | Vollständige Benachrichtigung aller nachgelagerten Systeme | Alle vier Schnittstellenaufrufe müssen protokolliert werden (erfolgreich, fehlgeschlagen oder ausstehend) | UC-05 (GR-12) |
+| GR-A09 | Die Policierung erzeugt immer genau einen Vertragsstand, der genau einem Vorgang zugeordnet ist | 1:1-Zuordnung Vertragsstand → Vorgang | Vertragsstand-Erzeugung + Vorgangszuordnung in einer Transaktion | UC-05 (GR-13), UC-02 (GR-08) |
+| GR-A10 | Bei Neugeschäft wird ein neuer Vertrag angelegt; bei Änderung/Stornierung wird der bestehende Vertrag fortgeführt | Korrekte Vertragserzeugung bzw. -fortschreibung | Vorgangstyp bestimmt, ob neuer Vertrag oder neuer Vertragsstand an bestehendem Vertrag | UC-05 (GR-14) |
+| GR-A11 | Schnittstellenfehler bei der Policierung führen nicht zum Abbruch der Vertragsstand-Erzeugung; fehlgeschlagene Aufrufe werden über Retry-Mechanismen nachgeliefert | Vertragsstand wird auch bei Schnittstellenfehlern erzeugt | Transactional Outbox Pattern; Dead-Letter-Topics; Wiedervorlage bei dauerhaftem Fehler | UC-05 (GR-15) |
+| GR-A12 | Ein Sachbearbeiter kann eine offene Schwebe nur policieren, wenn er die Kompetenz „Schwebe policieren" (SCHWEBE_POLICIEREN) besitzt | Berechtigungsprüfung vor manueller Policierung | Kompetenzabfrage gegen S8 (Kompetenz-System) | UC-05 (GR-16) |
