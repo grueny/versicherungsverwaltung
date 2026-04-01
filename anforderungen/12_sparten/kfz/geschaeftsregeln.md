@@ -45,6 +45,24 @@
 | GR-KFZ-PR04 | Bei Rabattschutz: Erster Schaden pro Versicherungsjahr führt nicht zur Rückstufung | Keine Beitragserhöhung | Rabattschutz-Flag und Schadenanzahl prüfen |
 | GR-KFZ-PR05 | Beitragserhöhung durch geänderte Typklassen (GDV-Aktualisierung) löst Sonderkündigungsrecht aus | VN darf sonderkündigen | Beitragsvergleich Alt/Neu |
 
+## Fahrzeugwechsel-Regeln (Neuvertrag-Modell)
+
+> Regeln für den Fahrzeugwechsel als eigenständigen Geschäftsvorfall mit Neuvertrag-Anlage (→ UC-KFZ-04).  
+> Der Fahrzeugwechsel wird **nicht** als Nachtrag auf dem bestehenden Vertrag abgebildet.
+
+| GR-Nr. | Regel | Auswirkung | Validierung |
+|--------|-------|-----------|-------------|
+| GR-KFZ-FW01 | Ein Fahrzeugwechsel erzeugt immer einen **neuen Vertrag** – der Alt-Vertrag wird beendet | Saubere Vertragstrennung, keine komplexe Abhängigkeit | Alt-Vertrag Status → `GEKUENDIGT`, Neuvertrag → `AKTIV` |
+| GR-KFZ-FW02 | Das Wechseldatum entspricht dem Zulassungsdatum des neuen Fahrzeugs (Standard) oder einem vom VN gewählten Datum | Vertragsbeginn Neu = Wechseldatum, Vertragsende Alt = Wechseldatum − 1 Tag | Wechseldatum ≥ heute, ≤ 12 Monate in Zukunft |
+| GR-KFZ-FW03 | Die **SF-Klasse** (HP und VK) wird vollständig vom Alt-Vertrag auf den Neuvertrag übernommen (SfKlassenHistorie-Eintrag mit Grund `FAHRZEUGWECHSEL`) | Keine SF-Rückstufung durch den Wechsel | SfKlassenHistorie-Eintrag mit Referenz auf Alt-Vertrag |
+| GR-KFZ-FW04 | Beitragserstattung für Alt-Vertrag erfolgt **pro rata temporis** ab dem Wechseldatum | Tagesgenaue Abrechnung, keine doppelte Prämie | Erstattungsbetrag = Restlaufzeit × Tagesbeitrag |
+| GR-KFZ-FW05 | Der RabattSchutz wird **nicht automatisch** auf den Neuvertrag übernommen – erneute Buchung erforderlich | Vertragsgebundener Baustein, Neuprüfung SF-Bedingung ≥ SF4 | RabattSchutz-Voraussetzungen am Neuvertrag prüfen |
+| GR-KFZ-FW06 | Aktive eVB-Nummern des Alt-Vertrags werden storniert, **außer** im Status `VERWENDET` | Keine ungültige eVB-Stornierung | eVB-Status vor Stornierung prüfen |
+| GR-KFZ-FW07 | Bei Fahrzeugartenwechsel werden nicht anwendbare Zusatzbausteine automatisch entfernt | Benutzer wird informiert, welche Bausteine entfallen | Baustein-Kompatibilität mit neuer Fahrzeugart prüfen |
+| GR-KFZ-FW08 | Alt- und Neuvertrag speichern weiche Referenzen aufeinander (`nachfolge_vertrag_id` / `ursprung_vertrag_id` im JSONB) | Nachvollziehbarkeit ohne FK-Constraint | JSONB-Felder in `spartenspezifische_daten` |
+| GR-KFZ-FW09 | Bei Widerruf des Neuvertrags (14-Tage-Frist) wird der Alt-Vertrag automatisch reaktiviert, sofern nicht `ABGELAUFEN` | Kein versicherungsloser Zustand nach Widerruf | Alt-Vertrag-Status prüfen, ggf. Reaktivierung blockieren |
+| GR-KFZ-FW10 | Die VK-SF-Klasse wird auch ohne aktive VK im Neuvertrag in der SfKlassenHistorie gespeichert (Status `RUHEND`) | SF-Klasse geht nicht verloren bei späterem VK-Abschluss | SfKlassenHistorie-Eintrag auch für ruhende VK-SF |
+
 ## Deckungsbezogene Regeln
 
 | GR-Nr. | Regel | Auswirkung | Validierung |

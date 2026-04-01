@@ -12,6 +12,10 @@
 | [UC-02](UC-02_antrag_bearbeiten_und_freigeben.md) | Antrag bearbeiten und freigeben | 🔴 Muss | ✅ Fertig |
 | [UC-03](UC-03_produktkonfiguration_und_kalkulation.md) | Produktkonfiguration und Kalkulation einstellen | 🔴 Muss | ✅ Fertig |
 | [UC-04](UC-04_durchlaufzeiten_erfassen_und_auswerten.md) | Durchlaufzeiten erfassen und auswerten | 🟡 Soll | ✅ Fertig |
+| [UC-05](UC-05_vertragsaenderung_durchfuehren.md) | Vertragsänderung durchführen (Nachtrag) | 🔴 Muss | ✅ Fertig |
+| [UC-06](UC-06_vertragsstornierung_durchfuehren.md) | Vertragsstornierung durchführen | 🔴 Muss | ✅ Fertig |
+| [UC-07](UC-07_wiederinkraftsetzung_durchfuehren.md) | Wiederinkraftsetzung durchführen | 🔴 Muss | ✅ Fertig |
+| [UC-08](UC-08_beitragsrechnung_inkasso.md) | Beitragsrechnung durchführen (Inkasso) | 🔴 Muss | ✅ Fertig |
 
 > **Priorität:** 🔴 Muss | 🟡 Soll | 🟢 Kann  
 > **Status:** 🔲 Offen | ✏️ In Arbeit | ✅ Fertig | 🔍 In Review
@@ -19,9 +23,11 @@
 ## Themenblöcke (Epics) – Spartenübergreifend
 
 ### Vertragsverwaltung (Kernprozess)
+- [UC-05: Vertragsänderung durchführen (Nachtrag)](UC-05_vertragsaenderung_durchfuehren.md) ✅
+- [UC-06: Vertragsstornierung durchführen](UC-06_vertragsstornierung_durchfuehren.md) ✅
+- [UC-07: Wiederinkraftsetzung durchführen](UC-07_wiederinkraftsetzung_durchfuehren.md) ✅
+- [UC-08: Beitragsrechnung durchführen (Inkasso)](UC-08_beitragsrechnung_inkasso.md) ✅
 - UC-XX: Vertrag anlegen (generischer Ablauf)
-- UC-XX: Vertrag ändern / Nachtrag (generischer Ablauf)
-- UC-XX: Vertrag kündigen (generischer Ablauf)
 - UC-XX: Vertragsübersicht anzeigen
 - UC-XX: Vertragshistorie einsehen
 

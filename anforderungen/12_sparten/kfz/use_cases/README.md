@@ -15,7 +15,7 @@
 | UC-KFZ-01 | Fahrzeugdaten erfassen und Typklasse ermitteln | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-02 | eVB-Nummer erzeugen | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-03 | SF-Klasse übernehmen / nachweisen | 🔴 Muss | 🔲 Offen |
-| UC-KFZ-04 | Fahrzeugwechsel durchführen | 🔴 Muss | 🔲 Offen |
+| [UC-KFZ-04](UC-KFZ-04_fahrzeugwechsel.md) | Fahrzeugwechsel durchführen (Neuvertrag) | 🔴 Muss | ✅ Fertig |
 | UC-KFZ-05 | SF-Rückstufung nach Schadenfall | 🔴 Muss | 🔲 Offen |
 | UC-KFZ-06 | Ruheversicherung aktivieren | 🔴 Muss | 🔲 Offen |
 | [UC-KFZ-20](UC-KFZ-20_fahrzeug_stilllegung.md) | Fahrzeug-Stilllegung durch Zulassungsstelle – Vertragsstornierung | 🔴 Muss | ✅ Fertig |

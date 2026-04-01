@@ -11,7 +11,7 @@
 | Antragsprüfung | eVB-Nummer erzeugen | evb | Elektronische Versicherungsbestätigung für Zulassung |
 | Policierung | eVB-Statusmeldung | evb | Rückmeldung an Zulassungsstelle |
 | Policierung | VKZ-Kennzeichen zuweisen | vkz | Kennzeichen aus Bestand zuweisen (nur FA-04) |
-| Vertragswartung / Nachtrag | Fahrzeugwechsel | kern | Sonderfall: Abmeldung Alt-Fzg, Anmeldung Neu-Fzg |
+| – (Eigenständig) | Fahrzeugwechsel (Neuvertrag) | kern | Alt-Vertrag beenden, Neuvertrag mit SF-Übernahme |
 | Beitragsanpassung | SF-Klassen-Rückstufung | sfr | Rückstufung nach Schadenfall |
 | Kündigung / Storno | Abmeldung Fahrzeug | kern | Ruheversicherung oder Kündigung bei Abmeldung |
 | Kündigung / Storno | VKZ-Rücknahme | vkz | Kennzeichen zurücknehmen (nur FA-04) |
@@ -60,24 +60,31 @@ Nach positiver Antragsprüfung muss eine elektronische Versicherungsbestätigung
 
 ---
 
-### Vertragswartung: Fahrzeugwechsel
+### Eigenständiger Prozess: Fahrzeugwechsel (Neuvertrag)
 
-#### Abweichung vom Kernprozess
-Ein Fahrzeugwechsel ist ein Sonderfall der Vertragswartung, bei dem das versicherte Fahrzeug ausgetauscht wird. Dies erfordert eine Neuberechnung der Prämie und ggf. eine neue eVB-Nummer.
+#### Prozessbeschreibung
+Ein Fahrzeugwechsel wird als **eigenständiger Geschäftsvorfall** abgebildet, bei dem der bestehende Vertrag beendet und ein **neuer Vertrag** für das neue Fahrzeug angelegt wird (→ UC-KFZ-04). Im Gegensatz zu einem klassischen Nachtrag (UC-05) entstehen zwei unabhängige Verträge ohne komplexe Abhängigkeit.
 
-#### Zusätzliche Prozessschritte
-1. Abmeldung des alten Fahrzeugs (FIN, Kennzeichen)
-2. Erfassung des neuen Fahrzeugs (HSN/TSN/FIN)
-3. Neuermittlung Typklasse und Regionalklasse
-4. Prämienneuberechnung
-5. Erzeugung neuer eVB-Nummer
-6. Nachtrag erstellen mit Dokumentation beider Fahrzeuge
+#### Prozessschritte
+1. Fahrzeugwechsel auf Alt-Vertrag initiieren
+2. Neues Fahrzeug erfassen (HSN/TSN/FIN) → Typklasse + Regionalklasse ermitteln
+3. Vertragsdaten vom Alt-Vertrag übernehmen (SF-Klasse, Fahrerkreis, Deckungsumfang etc.)
+4. Prämie für Neuvertrag berechnen → Vergleichsansicht Alt vs. Neu
+5. Alt-Vertrag beenden (Vorgang `STORNIERUNG`, Grund `FAHRZEUGWECHSEL`)
+6. Neuvertrag anlegen (Vorgang `NEUGESCHAEFT`) mit übernommener SF-Klasse
+7. Neue eVB-Nummer für Neuvertrag erzeugen
+8. eVB-Nummer des Alt-Vertrags beim GDV stornieren (falls nicht `VERWENDET`)
+9. Folgeprozesse: Inkasso (Erstattung Alt + Forderung Neu), Druck (Kündigung + Police), Provision
 
-#### Entfallende Prozessschritte
-- Keine (es handelt sich um einen erweiterten Nachtragsprozess)
+#### Abgrenzung zum Kernprozess
+- Kein Nachtrag (UC-05) – stattdessen Stornierung Alt + Neugeschäft Neu
+- SF-Klasse wird als interner Transfer übergeben (Änderungsgrund `FAHRZEUGWECHSEL` in SfKlassenHistorie)
+- Beide Verträge referenzieren einander über weiche JSONB-Referenz (`ursprung_vertrag_id` / `nachfolge_vertrag_id`)
 
 #### Bedingungen
-- SF-Klasse bleibt erhalten (wird übertragen)
+- Alt-Vertrag muss im Status `AKTIV` sein
+- SF-Klasse wird vollständig übernommen (HP + VK)
+- Optional: Ruheversicherung für Alt-Fahrzeug (→ UC-KFZ-06) statt Stornierung
 - Kasko-Selbstbeteiligung wird beibehalten, sofern nicht explizit geändert
 
 ---

@@ -133,8 +133,8 @@ Der generische Kernprozess definiert feste Erweiterungspunkte, an denen sich Spa
 | `nach_Antragserstellung` | Zusätzliche Schritte nach Antrag | eVB-Nummer erzeugen |
 | `vor_Policierung` | Prüfungen vor Vertragsabschluss | SF-Klasse validieren, Pflichtversicherung prüfen |
 | `nach_Policierung` | Aktionen nach Vertragsabschluss | eVB-Nummer an Zulassungsstelle melden |
-| `vor_Nachtrag` | Prüfungen vor Vertragsänderung | Fahrzeugwechsel-Plausibilitäten |
-| `nach_Nachtrag` | Aktionen nach Vertragsänderung | Neue eVB bei Fahrzeugwechsel |
+| `vor_Nachtrag` | Prüfungen vor Vertragsänderung | Fahrerkreis-Plausibilitäten, Deckungsänderung prüfen |
+| `nach_Nachtrag` | Aktionen nach Vertragsänderung | eVB-Aktualisierung bei Deckungsänderung |
 | `vor_Kuendigung` | Prüfungen vor Beendigung | Pflichtversicherung: Folgeversicherung prüfen |
 | `nach_Kuendigung` | Aktionen nach Beendigung | eVB-Stornierung, Ruheversicherung anbieten |
 
