@@ -25,6 +25,8 @@
 | Vorgang | Ein fachlicher Geschäftsvorfall, dem ein oder mehrere Vertragsstände zugeordnet sind. Klassifiziert die Art der Vertragsveränderung. | Geschäftsvorfall | Neugeschäft, Änderung, Stornierung |
 | Vertragsstand | Ein konkreter, zu einem bestimmten Zeitpunkt gültiger Zustand eines Vertrags. Wird bei der Freigabe eines Antrags erzeugt und einem Vorgang zugeordnet. Jeder Vertragsstand ist revisionssicher historisiert. | Vertragsversion, Vertragsbild | Vertragsstand nach Fahrzeugwechsel (Vorgang: Änderung) |
 | Tarif | | | |
+| Nachlass | Ein Rabatt oder Abschlag auf den Versicherungsbeitrag, der auf Vertragsebene (Gesamtbeitrag) oder Risikoebene (Einzelprodukt) gewährt werden kann. Nachlässe können prozentual oder als Absolutbetrag angegeben werden und werden bei der Beitragskalkulation berücksichtigt (UC-10). | Rabatt, Abschlag, Discount | Bündelrabatt 5 % auf Gesamtbeitrag |
+| Zuschlag | Ein Aufschlag auf den Versicherungsbeitrag, der auf Vertragsebene oder Risikoebene erhoben werden kann. Zuschläge können prozentual oder als Absolutbetrag angegeben werden und werden bei der Beitragskalkulation berücksichtigt (UC-10). | Aufschlag, Surcharge, Risikozuschlag | Gefahrenerhöhung 15 % auf KFZ-Haftpflicht |
 | Leistung | | | |
 | Selbstbeteiligung | | | |
 | Laufzeit | | | |

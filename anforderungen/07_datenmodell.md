@@ -54,6 +54,12 @@
          │ n                       ┌─────────────────┐
          └────────────────────────►│     Schaden     │ (Referenz zu S6)
                                    └─────────────────┘
+
+         ┌──────────────────────────────────────────────────────────────────┐
+         │                      NachlassZuschlag                           │
+         │  (polymorph: referenz_typ → Angebot / Antrag / Vertragsstand)  │
+         │  Ebene: VERTRAG (Gesamtbeitrag) oder RISIKO (→ Produkt)        │
+         └──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Produktkonfiguration (ER-Diagramm)
@@ -484,6 +490,52 @@
 | selbstbeteiligung | BigDecimal(10,2) | ❌ | Policierte Selbstbeteiligung |
 | tarifmerkmale | JSONB | ❌ | Policierte Tarifmerkmal-Werte |
 | deckungsbausteine | JSONB | ❌ | Policierte Deckungsbausteine |
+
+---
+
+### 3.4 NachlassZuschlag
+
+> Nachlässe und Zuschläge auf Vertrags- oder Risikoebene → UC-10. Werden an Angebot, Antrag oder Vertragsstand zugeordnet. Bei Überführung (Angebot → Antrag → Schwebe → Vertrag) als Snapshot kopiert.
+
+| Attribut | Typ | Pflicht | Beschreibung | Beispiel |
+|----------|-----|---------|-------------|---------|
+| id | UUID | ✅ | Technischer Primärschlüssel | |
+| referenz_typ | Enum | ✅ | Zuordnung zu Angebot / Antrag / Vertragsstand | `ANGEBOT` |
+| referenz_id | UUID | ✅ | ID des zugehörigen Angebots / Antrags / Vertragsstands | |
+| art | Enum | ✅ | Nachlass oder Zuschlag | `NACHLASS` |
+| ebene | Enum | ✅ | Vertragsebene oder Risikoebene | `VERTRAG` |
+| produkt_id | UUID (FK) | Bedingt | Referenz auf das betroffene Produkt (Pflicht bei Ebene = RISIKO) | |
+| nachlassart | String(100) | ✅ | Fachliche Kategorisierung | `BUENDELRABATT` |
+| bezeichnung | String(200) | ✅ | Anzeigename | `Bündelrabatt KFZ + Hausrat` |
+| werttyp | Enum | ✅ | Prozentual oder absolut | `PROZENTUAL` |
+| wert | BigDecimal(10,4) | ✅ | Höhe des Nachlasses/Zuschlags (> 0); bei PROZENTUAL 4 Nachkommastellen für Zielbeitragsgenauigkeit | `10.2173` |
+| zielbeitrag_brutto | BigDecimal(12,2) | ❌ | Vorgegebener Zielbeitrag brutto p.a. (nur bei `nachlassart` = `ZIELBEITRAG_NACHLASS` / `ZIELBEITRAG_ZUSCHLAG`) | `300.00` |
+| gueltig_ab | Date | ❌ | Wirksamkeitsbeginn (Standard: Vertragsbeginn) | `2027-01-01` |
+| gueltig_bis | Date | ❌ | Wirksamkeitsende (NULL = unbefristet) | |
+| begruendung | String(500) | ✅ | Fachliche Begründung (≥ 10 Zeichen) | `Kunde bündelt KFZ + Hausrat` |
+| erstellt_von | String(100) | ✅ | Benutzer-ID des Erstellers | `ad-mueller` |
+| erstellt_am | Timestamp | ✅ | Erstellzeitpunkt | |
+| geaendert_am | Timestamp | ✅ | Letzte Änderung | |
+
+**Enums:**
+
+| Enum | Werte |
+|------|-------|
+| `art` | `NACHLASS`, `ZUSCHLAG` |
+| `ebene` | `VERTRAG`, `RISIKO` |
+| `werttyp` | `PROZENTUAL`, `ABSOLUT` |
+| `referenz_typ` | `ANGEBOT`, `ANTRAG`, `VERTRAGSSTAND` |
+
+**Constraints:**
+- `wert > 0`
+- `produkt_id NOT NULL` wenn `ebene = RISIKO`
+- `begruendung NOT NULL` und `LENGTH(begruendung) >= 10`
+- `gueltig_bis > gueltig_ab` (falls beide angegeben)
+- `zielbeitrag_brutto > 0` (falls angegeben)
+- `zielbeitrag_brutto NOT NULL` wenn `nachlassart IN ('ZIELBEITRAG_NACHLASS', 'ZIELBEITRAG_ZUSCHLAG')`
+- Pro `referenz_typ` + `referenz_id` darf maximal ein Eintrag mit `nachlassart = 'ZIELBEITRAG_NACHLASS'` oder `'ZIELBEITRAG_ZUSCHLAG'` existieren
+
+**Historisierung:** ✅ Hibernate Envers
 
 ---
 
@@ -1035,6 +1087,8 @@
 | Produkt | Deckungsbaustein | 1:n | Deckungsbaustein.produkt_id | Bausteine pro Produkt |
 | Produkt | Tarifmerkmal | 1:n | Tarifmerkmal.produkt_id | Merkmale pro Produkt |
 | Produkt | Produktabhaengigkeit | 1:n | Produktabhaengigkeit.produkt_id | Abhängigkeiten |
+| Angebot/Antrag/Vertragsstand | NachlassZuschlag | 1:n | NachlassZuschlag.referenz_typ + referenz_id | Nachlässe und Zuschläge (polymorph über referenz_typ) |
+| Produkt | NachlassZuschlag | 1:n | NachlassZuschlag.produkt_id (bei Ebene RISIKO) | Produktbezogene Nachlässe/Zuschläge |
 | **KFZ:** Fahrzeug | KfzTarifierung | 1:1 | KfzTarifierung.fahrzeug_id | Tarifmerkmale pro Fahrzeug |
 | **KFZ:** Produkt | KfzBasisbeitrag | 1:n | KfzBasisbeitrag.produkt_id | Basisbeiträge pro Produkt und Fahrzeugart |
 | **KFZ:** Produkt | KfzScoringfaktor | 1:n | KfzScoringfaktor.produkt_id | Produktspezifische Scoringfaktoren (NULL = übergreifend) |
@@ -1115,7 +1169,11 @@
         { "typ": "STELLPLATZ", "schluessel": "GARAGE", "faktor": 0.9000 },
         { "typ": "NUTZUNGSART", "schluessel": "PRIVAT", "faktor": 1.0000 }
       ],
-      "jahresbeitrag_netto": 152.46
+      "jahresbeitrag_netto": 152.49,
+      "nachlaesse_zuschlaege": [
+        { "art": "NACHLASS", "nachlassart": "TREUERABATT", "werttyp": "PROZENTUAL", "wert": 10.00, "effekt": -15.25 }
+      ],
+      "jahresbeitrag_nach_nz": 137.24
     },
     {
       "produkt_id": "KFZ-TK",
@@ -1131,16 +1189,22 @@
         { "typ": "NUTZUNGSART", "schluessel": "PRIVAT", "faktor": 1.0000 },
         { "typ": "SELBSTBETEILIGUNG", "schluessel": "150", "faktor": 1.0000 }
       ],
-      "jahresbeitrag_netto": 143.55
+      "jahresbeitrag_netto": 143.55,
+      "nachlaesse_zuschlaege": [],
+      "jahresbeitrag_nach_nz": 143.55
     }
   ],
-  "gesamtjahresbeitrag_netto": 296.01,
+  "summe_netto_nach_risiko_nz": 280.79,
+  "vertragsnachlaesse_zuschlaege": [
+    { "art": "NACHLASS", "nachlassart": "BUENDELRABATT", "werttyp": "PROZENTUAL", "wert": 5.00, "effekt": -14.04 }
+  ],
+  "gesamtjahresbeitrag_netto": 266.75,
   "versicherungssteuer_prozent": 19.0,
-  "versicherungssteuer_betrag": 56.24,
-  "gesamtjahresbeitrag_brutto": 352.25,
+  "versicherungssteuer_betrag": 50.68,
+  "gesamtjahresbeitrag_brutto": 317.43,
   "zahlungsweise": "JAEHRLICH",
   "zahlungsweise_faktor": 1.0000,
-  "zahlbeitrag": 352.25
+  "zahlbeitrag": 317.43
 }
 ```
 
@@ -1189,6 +1253,7 @@ kfz_tarifierung → kfz_tarifierung_aud (KFZ)
 vwb_nachricht → vwb_nachricht_aud  (KFZ)
 vkz_kennzeichen → vkz_kennzeichen_aud (KFZ)
 antragsanmahnung → antragsanmahnung_aud (KFZ)
+nachlass_zuschlag → nachlass_zuschlag_aud
 kfz_basisbeitrag → kfz_basisbeitrag_aud (KFZ-Konfiguration)
 kfz_scoringfaktor → kfz_scoringfaktor_aud (KFZ-Konfiguration)
 ```
@@ -1262,6 +1327,9 @@ CREATE TRIGGER versioning_trigger
 | kfz_scoringfaktor | idx_sf_typ_prod_key | faktor_typ, produkt_id, faktor_schluessel, gueltig_ab | UNIQUE B-Tree | Faktor-Lookup |
 | kfz_scoringfaktor | idx_sf_typ_prod | faktor_typ, produkt_id | B-Tree | Alle Faktoren eines Typs/Produkts |
 | angebot | idx_angebot_spezifisch | spartenspezifische_daten | GIN | JSONB-Abfragen |
+| nachlass_zuschlag | idx_nz_referenz | referenz_typ, referenz_id | B-Tree | Alle Nachlässe/Zuschläge eines Angebots/Antrags/Vertragsstands |
+| nachlass_zuschlag | idx_nz_produkt | produkt_id | B-Tree | Nachlässe/Zuschläge eines Produkts |
+| nachlass_zuschlag | idx_nz_gueltig | gueltig_ab, gueltig_bis | B-Tree | Befristungsabfragen |
 
 ### 9.2 Partitionierung
 
@@ -1289,6 +1357,7 @@ CREATE TRIGGER versioning_trigger
 ┌──────────────────────┐  erzeugt  ┌──────────────────────┐
 │       ANGEBOT        │──────────►│       ANTRAG         │
 │ + AngebotProdukt     │  (UC-01)  │ + AntragProdukt      │
+│ + NachlassZuschlag   │           │ + NachlassZuschlag   │
 │ + Fahrzeug (KFZ)     │           │ + Fahrzeug (KFZ)     │
 │ + KfzTarifierung     │           │ + KfzTarifierung     │
 └──────────────────────┘           └──────────┬───────────┘
@@ -1317,8 +1386,9 @@ CREATE TRIGGER versioning_trigger
                           ┌──────────────────────┐
                           │   VERTRAGSSTAND      │
                           │ + VertragsstandProd.  │    ──► S1 (Provision)
-                          │ + Fahrzeug (KFZ)     │    ──► S2 (Inkasso)
-                          │ + KfzTarifierung     │    ──► S5 (Druck)
+                          │ + NachlassZuschlag   │    ──► S2 (Inkasso)
+                          │ + Fahrzeug (KFZ)     │    ──► S5 (Druck)
+                          │ + KfzTarifierung     │
                           └──────────────────────┘
 ```
 
