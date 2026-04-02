@@ -17,6 +17,7 @@
 | [UC-07](UC-07_wiederinkraftsetzung_durchfuehren.md) | Wiederinkraftsetzung durchführen | 🔴 Muss | ✅ Fertig |
 | [UC-08](UC-08_beitragsrechnung_inkasso.md) | Beitragsrechnung durchführen (Inkasso) | 🔴 Muss | ✅ Fertig |
 | [UC-09](UC-09_rueckwirkende_aenderung_und_stornierung.md) | Rückwirkende Änderung und Stornierung durchführen | 🔴 Muss | ✅ Fertig |
+| [UC-10](UC-10_nachlaesse_und_zuschlaege_verwalten.md) | Nachlässe und Zuschläge verwalten | 🔴 Muss | ✅ Fertig |
 
 > **Priorität:** 🔴 Muss | 🟡 Soll | 🟢 Kann  
 > **Status:** 🔲 Offen | ✏️ In Arbeit | ✅ Fertig | 🔍 In Review
@@ -29,6 +30,7 @@
 - [UC-07: Wiederinkraftsetzung durchführen](UC-07_wiederinkraftsetzung_durchfuehren.md) ✅
 - [UC-08: Beitragsrechnung durchführen (Inkasso)](UC-08_beitragsrechnung_inkasso.md) ✅
 - [UC-09: Rückwirkende Änderung und Stornierung durchführen](UC-09_rueckwirkende_aenderung_und_stornierung.md) ✅
+- [UC-10: Nachlässe und Zuschläge verwalten](UC-10_nachlaesse_und_zuschlaege_verwalten.md) ✅
 - UC-XX: Vertrag anlegen (generischer Ablauf)
 - UC-XX: Vertragsübersicht anzeigen
 - UC-XX: Vertragshistorie einsehen
