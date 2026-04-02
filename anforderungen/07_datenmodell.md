@@ -1165,11 +1165,11 @@
         { "typ": "STELLPLATZ", "schluessel": "GARAGE", "faktor": 0.9000 },
         { "typ": "NUTZUNGSART", "schluessel": "PRIVAT", "faktor": 1.0000 }
       ],
-      "jahresbeitrag_netto": 152.46,
+      "jahresbeitrag_netto": 152.49,
       "nachlaesse_zuschlaege": [
         { "art": "NACHLASS", "nachlassart": "TREUERABATT", "werttyp": "PROZENTUAL", "wert": 10.00, "effekt": -15.25 }
       ],
-      "jahresbeitrag_nach_nz": 137.21
+      "jahresbeitrag_nach_nz": 137.24
     },
     {
       "produkt_id": "KFZ-TK",
@@ -1190,17 +1190,17 @@
       "jahresbeitrag_nach_nz": 143.55
     }
   ],
-  "summe_netto_nach_risiko_nz": 280.76,
+  "summe_netto_nach_risiko_nz": 280.79,
   "vertragsnachlaesse_zuschlaege": [
     { "art": "NACHLASS", "nachlassart": "BUENDELRABATT", "werttyp": "PROZENTUAL", "wert": 5.00, "effekt": -14.04 }
   ],
-  "gesamtjahresbeitrag_netto": 266.72,
+  "gesamtjahresbeitrag_netto": 266.75,
   "versicherungssteuer_prozent": 19.0,
-  "versicherungssteuer_betrag": 56.24,
-  "gesamtjahresbeitrag_brutto": 352.25,
+  "versicherungssteuer_betrag": 50.68,
+  "gesamtjahresbeitrag_brutto": 317.43,
   "zahlungsweise": "JAEHRLICH",
   "zahlungsweise_faktor": 1.0000,
-  "zahlbeitrag": 352.25
+  "zahlbeitrag": 317.43
 }
 ```
 
