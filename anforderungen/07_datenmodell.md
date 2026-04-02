@@ -509,6 +509,7 @@
 | bezeichnung | String(200) | ✅ | Anzeigename | `Bündelrabatt KFZ + Hausrat` |
 | werttyp | Enum | ✅ | Prozentual oder absolut | `PROZENTUAL` |
 | wert | BigDecimal(10,2) | ✅ | Höhe des Nachlasses/Zuschlags (> 0) | `5.00` |
+| zielbeitrag_brutto | BigDecimal(12,2) | ❌ | Vorgegebener Zielbeitrag brutto p.a. (nur bei `nachlassart` = `ZIELBEITRAG_NACHLASS` / `ZIELBEITRAG_ZUSCHLAG`) | `300.00` |
 | gueltig_ab | Date | ❌ | Wirksamkeitsbeginn (Standard: Vertragsbeginn) | `2027-01-01` |
 | gueltig_bis | Date | ❌ | Wirksamkeitsende (NULL = unbefristet) | |
 | begruendung | String(500) | ✅ | Fachliche Begründung (≥ 10 Zeichen) | `Kunde bündelt KFZ + Hausrat` |
@@ -530,6 +531,9 @@
 - `produkt_id NOT NULL` wenn `ebene = RISIKO`
 - `begruendung NOT NULL` und `LENGTH(begruendung) >= 10`
 - `gueltig_bis > gueltig_ab` (falls beide angegeben)
+- `zielbeitrag_brutto > 0` (falls angegeben)
+- `zielbeitrag_brutto NOT NULL` wenn `nachlassart IN ('ZIELBEITRAG_NACHLASS', 'ZIELBEITRAG_ZUSCHLAG')`
+- Pro `referenz_typ` + `referenz_id` darf maximal ein Eintrag mit `nachlassart = 'ZIELBEITRAG_NACHLASS'` oder `'ZIELBEITRAG_ZUSCHLAG'` existieren
 
 **Historisierung:** ✅ Hibernate Envers
 
