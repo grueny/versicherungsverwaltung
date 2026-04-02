@@ -508,7 +508,7 @@
 | nachlassart | String(100) | ✅ | Fachliche Kategorisierung | `BUENDELRABATT` |
 | bezeichnung | String(200) | ✅ | Anzeigename | `Bündelrabatt KFZ + Hausrat` |
 | werttyp | Enum | ✅ | Prozentual oder absolut | `PROZENTUAL` |
-| wert | BigDecimal(10,2) | ✅ | Höhe des Nachlasses/Zuschlags (> 0) | `5.00` |
+| wert | BigDecimal(10,4) | ✅ | Höhe des Nachlasses/Zuschlags (> 0); bei PROZENTUAL 4 Nachkommastellen für Zielbeitragsgenauigkeit | `10.2173` |
 | zielbeitrag_brutto | BigDecimal(12,2) | ❌ | Vorgegebener Zielbeitrag brutto p.a. (nur bei `nachlassart` = `ZIELBEITRAG_NACHLASS` / `ZIELBEITRAG_ZUSCHLAG`) | `300.00` |
 | gueltig_ab | Date | ❌ | Wirksamkeitsbeginn (Standard: Vertragsbeginn) | `2027-01-01` |
 | gueltig_bis | Date | ❌ | Wirksamkeitsende (NULL = unbefristet) | |

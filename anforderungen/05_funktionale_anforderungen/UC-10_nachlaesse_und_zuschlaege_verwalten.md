@@ -66,9 +66,9 @@ Dies ist ein **spartenübergreifender** Kernprozess. Nachlässe und Zuschläge g
 19. Benutzer gibt den gewünschten **Zielbeitrag** (Jahresbeitrag brutto in EUR) ein
 20. Benutzer gibt eine **Begründung** ein (Pflicht, mindestens 10 Zeichen)
 21. System führt eine **Rückrechnung** durch:
-    - Aus dem Zielbeitrag brutto wird der erforderliche Gesamtnettobeitrag ermittelt (Zielbeitrag ÷ (1 + Versicherungssteuersatz) ÷ Zahlungsweisefaktor)
-    - Der Gesamtnettobeitrag vor Vertragsnachlass/-zuschlag wird aus den aktuellen Produktbeiträgen (nach bestehenden Risikonachlässen/-zuschlägen) ermittelt
-    - Die Differenz zwischen Ist-Nettobeitrag und Ziel-Nettobeitrag bestimmt den erforderlichen prozentualen Nachlass oder Zuschlag auf Vertragsebene
+    - Aus dem Zielbeitrag brutto wird der erforderliche Gesamtnettobeitrag ermittelt: `Ziel-Netto = Zielbeitrag ÷ ((1 + Versicherungssteuersatz) × Zahlungsweisefaktor)`
+    - Der Gesamtnettobeitrag vor Vertragsnachlass/-zuschlag wird aus den aktuellen Produktbeiträgen (nach bestehenden Risikonachlässen/-zuschlägen und manuellen Vertragsnachlässen) ermittelt
+    - Die Differenz zwischen Ist-Nettobeitrag und Ziel-Nettobeitrag bestimmt den erforderlichen prozentualen Nachlass oder Zuschlag auf Vertragsebene: `Nachlass-% = (Ist-Netto − Ziel-Netto) ÷ Ist-Netto × 100`
     - **Zielbeitrag < aktueller Beitrag** → System erzeugt einen **Nachlass** auf Vertragsebene (Nachlassart: `ZIELBEITRAG_NACHLASS`)
     - **Zielbeitrag > aktueller Beitrag** → System erzeugt einen **Zuschlag** auf Vertragsebene (Zuschlagsart: `ZIELBEITRAG_ZUSCHLAG`)
     - **Zielbeitrag = aktueller Beitrag** → Kein Nachlass/Zuschlag erforderlich; System zeigt Hinweis: „Der Zielbeitrag entspricht dem aktuellen Beitrag."
@@ -169,7 +169,7 @@ Dies ist ein **spartenübergreifender** Kernprozess. Nachlässe und Zuschläge g
 | Produkt | Referenz (UUID) | Bedingt | Pflicht bei Ebene = RISIKO; Produkt muss im Angebot/Antrag enthalten sein | Betroffenes Produkt bei Risikonachlass/-zuschlag |
 | Nachlassart / Zuschlagsart | Enum | ✅ | Muss in der konfigurierten Liste der Sparte oder spartenübergreifend vorhanden sein | Fachliche Kategorisierung (z. B. Bündelrabatt, Treuerabatt, Gefahrenerhöhung) |
 | Werttyp | Enum | ✅ | `PROZENTUAL` oder `ABSOLUT` | Art der Wertangabe |
-| Wert | BigDecimal(10,2) | ✅ | > 0; bei PROZENTUAL: ≤ konfiguriertes Maximum; bei ABSOLUT: ≤ konfiguriertes Maximum | Höhe des Nachlasses/Zuschlags |
+| Wert | BigDecimal(10,4) | ✅ | > 0; bei PROZENTUAL: ≤ konfiguriertes Maximum (4 Nachkommastellen bei Zielbeitrag); bei ABSOLUT: ≤ konfiguriertes Maximum | Höhe des Nachlasses/Zuschlags |
 | Gültig ab | Date | ❌ | ≥ Vertragsbeginn | Ab wann wirkt der Nachlass/Zuschlag (Standard: Vertragsbeginn) |
 | Gültig bis | Date | ❌ | > Gültig ab (falls angegeben) | Bis wann wirkt der Nachlass/Zuschlag (NULL = unbefristet) |
 | Begründung | String(500) | ✅ | Mindestens 10 Zeichen | Fachliche Begründung für den Nachlass/Zuschlag |
@@ -236,21 +236,22 @@ Rückrechnung:
   Ist-Nettobeitrag (nach Risiko):          280,79 EUR
   Differenz:                              − 28,69 EUR
   Erforderlicher Nachlass:
-    28,69 ÷ 280,79                        = 10,22 %
+    28,69 ÷ 280,79                        = 10,2173 %
 
 System erzeugt:
-  Vertragsnachlass (ZIELBEITRAG_NACHLASS): −10,22 % auf Vertragsebene
+  Vertragsnachlass (ZIELBEITRAG_NACHLASS): −10,2173 % auf Vertragsebene
 
 Neuberechnung:
   Summe Nettobeiträge (nach Risiko):     280,79 EUR
-  − Vertragsnachlass 10,22 %:           − 28,70 EUR
-  = Gesamtnettobeitrag:                  252,09 EUR
+  − Vertragsnachlass 10,2173 %:          − 28,69 EUR
+  = Gesamtnettobeitrag:                  252,10 EUR
   + Versicherungssteuer 19 %:           + 47,90 EUR
-  = Jahresbeitrag brutto:               299,99 EUR
-    (Rundungsdifferenz ≤ 0,01 EUR → OK)
+  = Jahresbeitrag brutto:               300,00 EUR
   × Zahlungsweisefaktor (jährlich):       × 1,0000
-  = Zahlbeitrag:                         299,99 EUR
+  = Zahlbeitrag:                         300,00 EUR
 ```
+
+> **Hinweis:** Der Zielbeitrags-Nachlasswert wird mit 4 Nachkommastellen berechnet und gespeichert, um Rundungsdifferenzen zu minimieren. Das Ergebnis darf maximal 0,01 EUR vom Zielbeitrag abweichen.
 
 ## Nachbedingungen
 - Nachlass/Zuschlag ist im Angebot, Antrag oder der Schwebe gespeichert und in der Beitragsberechnung berücksichtigt
